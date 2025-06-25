@@ -1,7 +1,7 @@
 const ProjectCard = ({ project, onDelete, onClick }) => (
   <div style={styles.card} onClick={onClick}>
     <div style={styles.header}>
-      <h3 style={styles.title}>{project.title}</h3>
+      <h3 style={styles.title}>{project.name || project.title}</h3>
       {project.userRole && project.userRole !== 'owner' && (
         <span style={styles.collaborationBadge}>
           {project.userRole === 'editor' ? '✏️ Editor' : 

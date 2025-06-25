@@ -71,9 +71,12 @@ router.get('/requests', authMiddleware, async (req, res) => {
     .populate('project', 'name description')
     .sort({ createdAt: -1 });
 
-    console.log('Found collaboration requests:', requests);
+    // Filter out any requests where sender or project is null
+    const validRequests = requests.filter(req => req.sender && req.project);
 
-    res.json({ requests });
+    console.log('Found collaboration requests:', validRequests);
+
+    res.json({ requests: validRequests });
   } catch (err) {
     console.error('Error fetching collaboration requests:', err);
     res.status(500).json({ error: 'Failed to fetch collaboration requests' });

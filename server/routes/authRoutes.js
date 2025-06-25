@@ -1,123 +1,132 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('../models/User');
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
+const User = require("../models/User");
+const authMiddleware = require("../middleware/authMiddleware");
 
-// Login route
-router.post('/login', async (req, res) => {
+// Register
+router.post("/register", async (req, res) => {
   try {
-    console.log('Login attempt for:', req.body.email);
-    
-    const { email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
-    // Validate input
-    if (!email || !password) {
-      console.log('Missing email or password');
-      return res.status(400).json({ error: 'Please provide email and password' });
+    if (!name || !email || !password) {
+      return res.status(400).json({ message: "Please enter all fields" });
     }
 
-    // Find user
-    const user = await User.findOne({ email });
-    if (!user) {
-      console.log('User not found:', email);
-      return res.status(401).json({ error: 'Invalid email or password' });
+    const allowedRoles = ["user", "admin"];
+    const userRole = allowedRoles.includes(role) ? role : "user"; // Defaults to 'user'
+
+    // Check if user already exists (case-insensitive due to schema lowercase: true)
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
     }
 
-    // Check password
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      console.log('Invalid password for user:', email);
-      return res.status(401).json({ error: 'Invalid email or password' });
-    }
+    // Password hashing is handled by the pre-save hook in the User model,
+    // so we can just create the user with the plain password here.
+    const newUser = new User({
+      name,
+      email,
+      password, // Plain password here, it will be hashed by pre('save') hook
+      role: userRole,
+    });
+    await newUser.save(); // This will trigger the pre-save hook to hash the password
 
-    // Create token
+    // Generate JWT token for the newly registered user
     const token = jwt.sign(
-      { 
-        _id: user._id,
-        role: user.role 
-      },
+      { _id: newUser._id, role: newUser.role },
       process.env.JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: "1d" } // Token expires in 1 day
     );
 
-    console.log('Login successful for user:', user._id);
+    // Respond with the token and user data, similar to login
+    res.status(201).json({
+      message: "User registered successfully",
+      token,
+      user: {
+        _id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role,
+        avatar: newUser.avatar, // Include avatar if you want it immediately on frontend
+      },
+    });
 
-    // Send response
+  } catch (err) {
+    console.error("Error in /register:", err);
+    // Handle specific MongoDB duplicate key error (E11000) if for some reason
+    // the findOne check was bypassed or a race condition occurred.
+    if (err.code === 11000) {
+      return res.status(400).json({ message: "User with this email already exists." });
+    }
+    res.status(500).json({ message: "Server error during registration." });
+  }
+});
+
+// Login
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: "Please enter all fields" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Use the comparePassword method from the User model
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Sign JWT with user ID and role
+    const token = jwt.sign(
+      { _id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
     res.json({
       token,
       user: {
         _id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role
-      }
-    });
-  } catch (err) {
-    console.error('Login error:', err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// Register route
-router.post('/register', async (req, res) => {
-  try {
-    console.log('Registration attempt for:', req.body.email);
-    
-    const { name, email, password } = req.body;
-
-    // Validate input
-    if (!name || !email || !password) {
-      console.log('Missing required fields');
-      return res.status(400).json({ error: 'Please provide all required fields' });
-    }
-
-    // Check if user exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      console.log('User already exists:', email);
-      return res.status(400).json({ error: 'User already exists' });
-    }
-
-    // Hash password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Create user
-    const user = new User({
-      name,
-      email,
-      password: hashedPassword,
-      role: 'user'
-    });
-
-    await user.save();
-    console.log('User registered successfully:', user._id);
-
-    // Create token
-    const token = jwt.sign(
-      { 
-        _id: user._id,
-        role: user.role 
+        role: user.role,
+        avatar: user.avatar, // Include avatar for login response as well
       },
-      process.env.JWT_SECRET,
-      { expiresIn: '24h' }
-    );
-
-    // Send response
-    res.status(201).json({
-      token,
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-        role: user.role
-      }
     });
+    
   } catch (err) {
-    console.error('Registration error:', err);
-    res.status(500).json({ error: 'Server error' });
+    console.error("Error in /login:", err);
+    res.status(500).json({ message: "Server error during login." });
   }
 });
 
-module.exports = router; 
+router.get("/test", (req, res) => {
+  res.send("Auth route works!");
+});
+
+// Get user by email
+router.get('/email/:email', authMiddleware, async (req, res) => {
+  try {
+    const user = await User.findOne({ email: req.params.email })
+      .select('-password'); // Don't send password to client
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (err) {
+    console.error('Fetch User by Email Error:', err);
+    res.status(500).json({ error: 'Failed to fetch user' });
+  }
+});
+
+module.exports = router;

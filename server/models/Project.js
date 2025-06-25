@@ -1,25 +1,67 @@
 const mongoose = require('mongoose');
 
-const ProjectSchema = new mongoose.Schema({
-  owner: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    required: true
+const projectSchema = new mongoose.Schema({
+  name: {
+    type: String,
+    required: true,
+    trim: true
   },
-  title: {
+  description: {
     type: String,
     required: true
   },
-  description: String,
+  category: {
+    type: String,
+    trim: true,
+    default: 'General'
+  },
   status: {
     type: String,
-    enum: ['active', 'archived', 'completed'],
+    enum: ['active', 'completed', 'archived', 'pending'],
     default: 'active'
   },
-  collaborators: [{
+  type: {
+    type: String,
+    enum: ['project', 'collaboration'],
+    default: 'project'
+  },
+  health: {
+    type: String,
+    enum: ['on-track', 'at-risk', 'delayed'],
+    default: 'on-track'
+  },
+  progress: {
+    type: Number,
+    min: 0,
+    max: 100,
+    default: 0
+  },
+  members: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
+  tasks: [{
+    title: String,
+    description: String,
+    status: {
+      type: String,
+      enum: ['todo', 'in-progress', 'completed'],
+      default: 'todo'
+    },
+    assignedTo: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User'
+    },
+    dueDate: Date,
+    completedAt: Date
+  }],
+  aiUsage: {
+    totalRequests: {
+      type: Number,
+      default: 0
+    },
+    lastUsed: Date
+  },
   createdAt: {
     type: Date,
     default: Date.now
@@ -27,9 +69,27 @@ const ProjectSchema = new mongoose.Schema({
   updatedAt: {
     type: Date,
     default: Date.now
-  }
-}, {
-  timestamps: true
+  },
+  owner: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  collaborators: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }]
 });
 
-module.exports = mongoose.model('Project', ProjectSchema);
+// Update the updatedAt timestamp before saving
+projectSchema.pre('save', function(next) {
+  this.updatedAt = new Date();
+  next();
+});
+
+// Indexes for better query performance
+projectSchema.index({ status: 1 });
+projectSchema.index({ type: 1 });
+projectSchema.index({ members: 1 });
+projectSchema.index({ updatedAt: -1 });
+module.exports = mongoose.model('Project', projectSchema); 

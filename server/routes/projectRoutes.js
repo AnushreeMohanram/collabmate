@@ -22,11 +22,13 @@ router.get('/', authMiddleware, async (req, res) => {
       status: 'accepted'
     }).populate('project');
     
-    const collaboratedProjects = collaborations.map(collab => ({
-      ...collab.project.toObject(),
-      userRole: collab.role,
-      collaborationId: collab._id
-    }));
+    const collaboratedProjects = collaborations
+      .filter(collab => collab.project) // Only keep collaborations with a valid project
+      .map(collab => ({
+        ...collab.project.toObject(),
+        userRole: collab.role,
+        collaborationId: collab._id
+      }));
     
     // Combine both lists
     const allProjects = [...ownedProjectsWithRole, ...collaboratedProjects];
@@ -85,17 +87,19 @@ router.get('/:id', authMiddleware, async (req, res) => {
 });
 
 router.post('/', authMiddleware, async (req, res) => {
-  const { title, description } = req.body;
-
-  if (!title || !description) {
-    return res.status(400).json({ error: 'Title and description are required' });
+  let { name, title, description, category } = req.body;
+  name = (name || title || '').trim();
+  description = (description || '').trim();
+  category = (category || 'General').trim();
+  if (!name || !description) {
+    return res.status(400).json({ error: 'Project name and description are required' });
   }
-
   try {
     const project = new Project({
-      owner: req.user._id, // 👈 Changed from userId to owner
-      title,
+      owner: req.user._id,
+      name,
       description,
+      category,
     });
     await project.save();
     res.status(201).json(project);

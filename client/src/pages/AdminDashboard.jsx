@@ -1,19 +1,38 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
+import { Bar, Pie, Line } from 'react-chartjs-2'; // Import chart components
+import { // Import Chart.js essentials
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title, // Added Title for chart titles
+  Tooltip,
+  Legend,
+} from 'chart.js';
+
+// Register Chart.js components (important!)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  ArcElement,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     totalProjects: 0,
     totalCollaborations: 0,
-    activeUsers: 0,
-    recentActivities: [],
-    systemMetrics: {
-      cpu: 0,
-      memory: 0,
-      storage: 0,
-      uptime: 0
-    }
+    activeUsers: 0
   });
   const [users, setUsers] = useState([]);
   const [projects, setProjects] = useState([]);
@@ -21,32 +40,43 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
-  const [dateRange, setDateRange] = useState('week');
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [selectedProject, setSelectedProject] = useState(null);
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState('');
+
+  // New states for chart-specific data (if your backend provides separate endpoints)
+  const [userRegistrationTrend, setUserRegistrationTrend] = useState([]);
+  const [projectCreationTrend, setProjectCreationTrend] = useState([]);
+  const [userRoleDistribution, setUserRoleDistribution] = useState({});
+
 
   useEffect(() => {
     fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, [dateRange]);
+  }, []);
 
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [statsRes, usersRes, projectsRes, collabsRes] = await Promise.all([
+      // Fetch core dashboard data concurrently
+      const [statsRes, usersRes, projectsRes, collabsRes,
+             userRegRes, projCreateRes, userRoleRes] = await Promise.all([ // Added new fetches
         API.get('/admin/stats'),
         API.get('/admin/users'),
         API.get('/admin/projects'),
-        API.get('/admin/collaborations')
+        API.get('/admin/collaborations'),
+        API.get('/admin/charts/user-registration-trend'), // New endpoint for user trend
+        API.get('/admin/charts/project-creation-trend'), // New endpoint for project trend
+        API.get('/admin/charts/user-role-distribution') // New endpoint for user roles
       ]);
 
       setStats(statsRes.data);
-      setUsers(usersRes.data);
-      setProjects(projectsRes.data);
-      setCollaborations(collabsRes.data);
+      setUsers(Array.isArray(usersRes.data) ? usersRes.data : []);
+      setProjects(Array.isArray(projectsRes.data) ? projectsRes.data : []);
+      setCollaborations(Array.isArray(collabsRes.data) ? collabsRes.data : []);
+
+      // Set data for charts
+      setUserRegistrationTrend(Array.isArray(userRegRes.data) ? userRegRes.data : []);
+      setProjectCreationTrend(Array.isArray(projCreateRes.data) ? projCreateRes.data : []);
+      setUserRoleDistribution(userRoleRes.data || {});
+
+
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
       alert('Failed to load dashboard data');
@@ -75,38 +105,112 @@ const AdminDashboard = () => {
     }
   };
 
-  const openModal = (type, data = null) => {
-    setModalType(type);
-    if (type === 'user') setSelectedUser(data);
-    if (type === 'project') setSelectedProject(data);
-    setShowModal(true);
+  const filteredUsers = users.filter(user => 
+    user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredProjects = projects.filter(project => 
+    project.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  // --- Chart Data Preparation (derived from fetched states) ---
+
+  // 1. User Status Pie Chart (using existing 'stats' data)
+  const userStatusData = {
+    labels: ['Active Users', 'Inactive Users'],
+    datasets: [
+      {
+        data: [stats.activeUsers, stats.totalUsers - stats.activeUsers],
+        backgroundColor: ['#10b981', '#ef4444'], // Green for active, Red for inactive
+        borderColor: ['#ffffff', '#ffffff'],
+        borderWidth: 2,
+      },
+    ],
   };
 
-  const closeModal = () => {
-    setShowModal(false);
-    setSelectedUser(null);
-    setSelectedProject(null);
+  // 2. Project Status Pie Chart (derived from 'projects' array)
+  const projectStatusCounts = projects.reduce((acc, project) => {
+    acc[project.status] = (acc[project.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  const projectStatusLabels = Object.keys(projectStatusCounts);
+  const projectStatusValues = Object.values(projectStatusCounts);
+
+  const projectStatusColors = projectStatusLabels.map(status => {
+    if (status === 'active') return '#10b981'; // Green
+    if (status === 'archived') return '#f97316'; // Orange
+    // Add more statuses if you have them
+    return '#64748b'; // Grey for others
+  });
+
+  const projectStatusChartData = {
+    labels: projectStatusLabels,
+    datasets: [
+      {
+        data: projectStatusValues,
+        backgroundColor: projectStatusColors,
+        borderColor: ['#ffffff', '#ffffff', '#ffffff'],
+        borderWidth: 2,
+      },
+    ],
   };
+
+  // 3. User Registration Trend Line Chart (using 'userRegistrationTrend' state)
+  const userRegistrationChartData = {
+    labels: userRegistrationTrend.map(item => item.date), // Assuming 'date' property
+    datasets: [
+      {
+        label: 'New Users',
+        data: userRegistrationTrend.map(item => item.count), // Assuming 'count' property
+        fill: false,
+        borderColor: '#4f46e5', // Indigo
+        tension: 0.1,
+      },
+    ],
+  };
+
+  // 4. Project Creation Trend Line Chart (using 'projectCreationTrend' state)
+  const projectCreationChartData = {
+    labels: projectCreationTrend.map(item => item.date), // Assuming 'date' property
+    datasets: [
+      {
+        label: 'New Projects',
+        data: projectCreationTrend.map(item => item.count), // Assuming 'count' property
+        fill: false,
+        borderColor: '#22c55e', // Green
+        tension: 0.1,
+      },
+    ],
+  };
+
+  // 5. User Role Distribution Bar/Pie Chart (using 'userRoleDistribution' state)
+  const userRoleLabels = Object.keys(userRoleDistribution);
+  const userRoleCounts = Object.values(userRoleDistribution);
+
+  const userRoleChartData = {
+    labels: userRoleLabels,
+    datasets: [
+      {
+        label: 'Number of Users',
+        data: userRoleCounts,
+        backgroundColor: [
+          '#4f46e5', // Indigo for Admin
+          '#0ea5e9', // Sky for Standard
+          '#facc15', // Yellow for others (if any)
+        ],
+        borderColor: '#ffffff',
+        borderWidth: 1,
+      },
+    ],
+  };
+
 
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <div style={styles.headerLeft}>
           <h1 style={styles.heading}>👑 Admin Dashboard</h1>
-          <div style={styles.dateFilter}>
-            <select 
-              value={dateRange} 
-              onChange={(e) => setDateRange(e.target.value)}
-              style={styles.select}
-            >
-              <option value="day">Last 24 Hours</option>
-              <option value="week">Last 7 Days</option>
-              <option value="month">Last 30 Days</option>
-              <option value="year">Last Year</option>
-            </select>
-          </div>
-        </div>
-        <div style={styles.headerRight}>
           <button 
             onClick={fetchDashboardData}
             style={styles.refreshButton}
@@ -114,7 +218,6 @@ const AdminDashboard = () => {
           >
             {loading ? '🔄 Refreshing...' : '🔄 Refresh Data'}
           </button>
-        </div>
       </div>
 
       <div style={styles.tabs}>
@@ -123,30 +226,6 @@ const AdminDashboard = () => {
           style={activeTab === 'overview' ? styles.activeTab : styles.tab}
         >
           📊 Overview
-        </button>
-        <button 
-          onClick={() => setActiveTab('users')}
-          style={activeTab === 'users' ? styles.activeTab : styles.tab}
-        >
-          👥 Users ({users.length})
-        </button>
-        <button 
-          onClick={() => setActiveTab('projects')}
-          style={activeTab === 'projects' ? styles.activeTab : styles.tab}
-        >
-          📁 Projects ({projects.length})
-        </button>
-        <button 
-          onClick={() => setActiveTab('collaborations')}
-          style={activeTab === 'collaborations' ? styles.activeTab : styles.tab}
-        >
-          🤝 Collaborations ({collaborations.length})
-        </button>
-        <button 
-          onClick={() => setActiveTab('settings')}
-          style={activeTab === 'settings' ? styles.activeTab : styles.tab}
-        >
-          ⚙️ Settings
         </button>
       </div>
 
@@ -165,96 +244,39 @@ const AdminDashboard = () => {
                   <p style={styles.statNumber}>{stats.totalUsers}</p>
                   <div style={styles.statDetails}>
                     <span>Active: {stats.activeUsers}</span>
-                    <span>New: {stats.newUsers}</span>
                   </div>
                 </div>
                 <div style={styles.statCard}>
                   <h3>📁 Total Projects</h3>
                   <p style={styles.statNumber}>{stats.totalProjects}</p>
-                  <div style={styles.statDetails}>
-                    <span>Active: {stats.activeProjects}</span>
-                    <span>New: {stats.newProjects}</span>
-                  </div>
                 </div>
                 <div style={styles.statCard}>
                   <h3>🤝 Collaborations</h3>
                   <p style={styles.statNumber}>{stats.totalCollaborations}</p>
-                  <div style={styles.statDetails}>
-                    <span>Active: {stats.activeCollaborations}</span>
-                    <span>Pending: {stats.pendingCollaborations}</span>
-                  </div>
-                </div>
-                <div style={styles.statCard}>
-                  <h3>💻 System Health</h3>
-                  <div style={styles.systemMetrics}>
-                    <div style={styles.metric}>
-                      <span>CPU</span>
-                      <div style={styles.progressBar}>
-                        <div 
-                          style={{
-                            ...styles.progressFill,
-                            width: `${stats.systemMetrics.cpu}%`,
-                            backgroundColor: stats.systemMetrics.cpu > 80 ? '#ef4444' : '#4f46e5'
-                          }}
-                        ></div>
-                      </div>
-                      <span>{stats.systemMetrics.cpu}%</span>
-                    </div>
-                    <div style={styles.metric}>
-                      <span>Memory</span>
-                      <div style={styles.progressBar}>
-                        <div 
-                          style={{
-                            ...styles.progressFill,
-                            width: `${stats.systemMetrics.memory}%`,
-                            backgroundColor: stats.systemMetrics.memory > 80 ? '#ef4444' : '#4f46e5'
-                          }}
-                        ></div>
-                      </div>
-                      <span>{stats.systemMetrics.memory}%</span>
-                    </div>
-                    <div style={styles.metric}>
-                      <span>Storage</span>
-                      <div style={styles.progressBar}>
-                        <div 
-                          style={{
-                            ...styles.progressFill,
-                            width: `${stats.systemMetrics.storage}%`,
-                            backgroundColor: stats.systemMetrics.storage > 80 ? '#ef4444' : '#4f46e5'
-                          }}
-                        ></div>
-                      </div>
-                      <span>{stats.systemMetrics.storage}%</span>
-                    </div>
-                  </div>
                 </div>
               </div>
 
-              <div style={styles.recentActivity}>
-                <div style={styles.sectionHeader}>
-                  <h2>Recent Activity</h2>
-                  <button 
-                    onClick={() => setDateRange('day')}
-                    style={styles.viewAllButton}
-                  >
-                    View All
-                  </button>
+              {/* NEW CHARTS SECTION */}
+              <div style={styles.chartsGrid}>
+                <div style={styles.chartCard}>
+                  <h3>User Status Distribution</h3>
+                  <Pie data={userStatusData} options={{ responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'User Activity Breakdown' } } }} />
                 </div>
-                <div style={styles.activityList}>
-                  {stats.recentActivities.map((activity, i) => (
-                    <div key={i} style={styles.activityItem}>
-                      <span style={styles.activityIcon}>
-                        {activity.type === 'user' ? '👤' : 
-                         activity.type === 'project' ? '📁' : '🤝'}
-                      </span>
-                      <div style={styles.activityDetails}>
-                        <p style={styles.activityText}>{activity.description}</p>
-                        <small style={styles.activityTime}>
-                          {new Date(activity.timestamp).toLocaleString()}
-                        </small>
-                      </div>
-                    </div>
-                  ))}
+                <div style={styles.chartCard}>
+                  <h3>Project Status Distribution</h3>
+                  <Pie data={projectStatusChartData} options={{ responsive: true, plugins: { legend: { position: 'top' }, title: { display: true, text: 'Project Lifecycle' } } }} />
+                </div>
+                <div style={styles.chartCard}>
+                  <h3>New User Registrations (Last 30 Days)</h3>
+                  <Line data={userRegistrationChartData} options={{ responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'User Growth Over Time' } }, scales: { y: { beginAtZero: true } } }} />
+                </div>
+                <div style={styles.chartCard}>
+                  <h3>New Project Creations (Last 30 Days)</h3>
+                  <Line data={projectCreationChartData} options={{ responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Project Development Trend' } }, scales: { y: { beginAtZero: true } } }} />
+                </div>
+                 <div style={styles.chartCard}>
+                  <h3>User Role Breakdown</h3>
+                  <Bar data={userRoleChartData} options={{ responsive: true, plugins: { legend: { display: false }, title: { display: true, text: 'Roles Across Platform' } }, scales: { y: { beginAtZero: true } } }} />
                 </div>
               </div>
             </div>
@@ -270,73 +292,38 @@ const AdminDashboard = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={styles.searchInput}
                 />
-                <button 
-                  onClick={() => openModal('user')}
-                  style={styles.addButton}
-                >
-                  + Add User
-                </button>
               </div>
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th>User</th>
-                    <th>Email</th>
-                    <th>Role</th>
-                    <th>Status</th>
-                    <th>Joined</th>
-                    <th>Actions</th>
+                    <th style={styles.tableHeader}>Name</th>
+                    <th style={styles.tableHeader}>Email</th>
+                    <th style={styles.tableHeader}>Role</th>
+                    <th style={styles.tableHeader}>Status</th>
+                    <th style={styles.tableHeader}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {users
-                    .filter(user => 
-                      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map(user => (
-                      <tr key={user._id}>
-                        <td>
-                          <div style={styles.userCell}>
-                            <span style={styles.userAvatar}>
-                              {user.name.charAt(0).toUpperCase()}
-                            </span>
-                            {user.name}
-                          </div>
-                        </td>
-                        <td>{user.email}</td>
-                        <td>
-                          <span style={styles.roleBadge}>
-                            {user.role}
+                  {filteredUsers.map(user => (
+                    <tr key={user._id} style={styles.tableRow}>
+                      <td style={styles.tableCell}>{user.name}</td>
+                      <td style={styles.tableCell}>{user.email}</td>
+                      <td style={styles.tableCell}>{user.role}</td>
+                      <td style={styles.tableCell}>
+                        <span style={{
+                          ...styles.badge,
+                          backgroundColor: user.active ? '#10b981' : '#ef4444'
+                        }}>
+                          {user.active ? 'Active' : 'Inactive'}
                           </span>
                         </td>
-                        <td>
-                          <span style={styles.statusBadge}>
-                            {user.isActive ? '🟢 Active' : '🔴 Inactive'}
-                          </span>
-                        </td>
-                        <td>{new Date(user.createdAt).toLocaleDateString()}</td>
-                        <td>
-                          <div style={styles.actionButtons}>
+                      <td style={styles.tableCell}>
                             <button
-                              onClick={() => openModal('user', user)}
-                              style={styles.editButton}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleUserAction(user._id, user.isActive ? 'deactivate' : 'activate')}
+                          onClick={() => handleUserAction(user._id, user.active ? 'deactivate' : 'activate')}
                               style={styles.actionButton}
                             >
-                              {user.isActive ? 'Deactivate' : 'Activate'}
+                          {user.active ? 'Deactivate' : 'Activate'}
                             </button>
-                            <button
-                              onClick={() => handleUserAction(user._id, 'delete')}
-                              style={styles.deleteButton}
-                            >
-                              Delete
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     ))}
@@ -355,66 +342,36 @@ const AdminDashboard = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   style={styles.searchInput}
                 />
-                <button 
-                  onClick={() => openModal('project')}
-                  style={styles.addButton}
-                >
-                  + Add Project
-                </button>
               </div>
               <table style={styles.table}>
                 <thead>
                   <tr>
-                    <th>Title</th>
-                    <th>Owner</th>
-                    <th>Collaborators</th>
-                    <th>Created</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th style={styles.tableHeader}>Name</th>
+                    <th style={styles.tableHeader}>Owner</th>
+                    <th style={styles.tableHeader}>Status</th>
+                    <th style={styles.tableHeader}>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {projects
-                    .filter(project => 
-                      project.title.toLowerCase().includes(searchTerm.toLowerCase())
-                    )
-                    .map(project => (
-                      <tr key={project._id}>
-                        <td>
-                          <div style={styles.projectCell}>
-                            <span style={styles.projectIcon}>📁</span>
-                            {project.title}
-                          </div>
-                        </td>
-                        <td>{project.owner.name}</td>
-                        <td>{project.collaborators.length}</td>
-                        <td>{new Date(project.createdAt).toLocaleDateString()}</td>
-                        <td>
-                          <span style={styles.statusBadge}>
+                  {filteredProjects.map(project => (
+                    <tr key={project._id} style={styles.tableRow}>
+                      <td style={styles.tableCell}>{project.name}</td>
+                      <td style={styles.tableCell}>{project.owner?.name || 'Unknown'}</td>
+                      <td style={styles.tableCell}>
+                        <span style={{
+                          ...styles.badge,
+                          backgroundColor: project.status === 'active' ? '#10b981' : '#ef4444'
+                        }}>
                             {project.status}
                           </span>
                         </td>
-                        <td>
-                          <div style={styles.actionButtons}>
+                      <td style={styles.tableCell}>
                             <button
-                              onClick={() => openModal('project', project)}
-                              style={styles.editButton}
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleProjectAction(project._id, 'archive')}
+                          onClick={() => handleProjectAction(project._id, project.status === 'active' ? 'archive' : 'activate')}
                               style={styles.actionButton}
                             >
-                              Archive
+                          {project.status === 'active' ? 'Archive' : 'Activate'}
                             </button>
-                            <button
-                              onClick={() => handleProjectAction(project._id, 'delete')}
-                              style={styles.deleteButton}
-                            >
-                              Delete
-                            </button>
-                          </div>
                         </td>
                       </tr>
                     ))}
@@ -422,56 +379,7 @@ const AdminDashboard = () => {
               </table>
             </div>
           )}
-
-          {activeTab === 'settings' && (
-            <div style={styles.settingsContainer}>
-              <div style={styles.settingsSection}>
-                <h2>System Settings</h2>
-                <div style={styles.settingsGrid}>
-                  <div style={styles.settingCard}>
-                    <h3>Email Notifications</h3>
-                    <div style={styles.settingControl}>
-                      <label>
-                        <input type="checkbox" checked={true} />
-                        Enable email notifications
-                      </label>
-                    </div>
-                  </div>
-                  <div style={styles.settingCard}>
-                    <h3>System Maintenance</h3>
-                    <div style={styles.settingControl}>
-                      <button style={styles.maintenanceButton}>
-                        Schedule Maintenance
-                      </button>
-                    </div>
-                  </div>
-                  <div style={styles.settingCard}>
-                    <h3>Backup Settings</h3>
-                    <div style={styles.settingControl}>
-                      <button style={styles.backupButton}>
-                        Create Backup
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </>
-      )}
-
-      {showModal && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modal}>
-            <div style={styles.modalHeader}>
-              <h2>{modalType === 'user' ? 'User Details' : 'Project Details'}</h2>
-              <button onClick={closeModal} style={styles.closeButton}>×</button>
-            </div>
-            <div style={styles.modalContent}>
-              {/* Modal content based on type */}
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
@@ -479,94 +387,57 @@ const AdminDashboard = () => {
 
 const styles = {
   container: {
-    marginLeft: '220px',
+    marginLeft: '240px',
     padding: '30px',
     minHeight: '100vh',
     background: 'linear-gradient(135deg, #f0f4ff, #fff)',
-    width: 'calc(100% - 220px)',
+    width: 'calc(100% - 240px)',
     boxSizing: 'border-box',
+    position: 'relative',
+    minWidth: 0,
   },
   header: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: '30px',
-  },
-  headerLeft: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '20px',
-  },
-  headerRight: {
-    display: 'flex',
-    gap: '10px',
+    marginBottom: '20px',
   },
   heading: {
-    fontSize: '28px',
+    fontSize: '24px',
     color: '#1e293b',
     margin: 0,
-  },
-  dateFilter: {
-    position: 'relative',
-  },
-  select: {
-    padding: '8px 12px',
-    borderRadius: '8px',
-    border: '1px solid #e2e8f0',
-    backgroundColor: 'white',
-    fontSize: '14px',
-    cursor: 'pointer',
   },
   refreshButton: {
     padding: '8px 16px',
     backgroundColor: '#4f46e5',
     color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#4338ca',
-    },
-    '&:disabled': {
-      backgroundColor: '#94a3b8',
-      cursor: 'not-allowed',
-    },
   },
   tabs: {
     display: 'flex',
     gap: '10px',
-    marginBottom: '30px',
-    borderBottom: '1px solid #e2e8f0',
-    paddingBottom: '10px',
+    marginBottom: '20px',
   },
   tab: {
     padding: '10px 20px',
-    backgroundColor: 'transparent',
+    backgroundColor: '#f1f5f9',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
     color: '#64748b',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#f1f5f9',
-      color: '#1e293b',
-    },
   },
   activeTab: {
     padding: '10px 20px',
     backgroundColor: '#4f46e5',
-    color: 'white',
     border: 'none',
-    borderRadius: '8px',
+    borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '14px',
-    fontWeight: 'bold',
+    color: 'white',
   },
   loader: {
     display: 'flex',
@@ -578,201 +449,96 @@ const styles = {
   spinner: {
     width: '40px',
     height: '40px',
-    border: '3px solid #f1f5f9',
-    borderTop: '3px solid #4f46e5',
+    border: '4px solid #f3f3f3',
+    borderTop: '4px solid #4f46e5',
     borderRadius: '50%',
     animation: 'spin 1s linear infinite',
   },
   overview: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '30px',
+    backgroundColor: 'white',
+    padding: '20px',
+    borderRadius: '12px',
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
   },
   statsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
     gap: '20px',
+    marginBottom: '30px', // Added margin for spacing between stats and charts
   },
   statCard: {
-    backgroundColor: 'white',
+    backgroundColor: '#f8fafc',
     padding: '20px',
-    borderRadius: '12px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    borderRadius: '8px',
   },
   statNumber: {
-    fontSize: '32px',
+    fontSize: '24px',
     fontWeight: 'bold',
     color: '#1e293b',
     margin: '10px 0',
   },
   statDetails: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    color: '#64748b',
-    fontSize: '14px',
-  },
-  systemMetrics: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '10px',
-  },
-  metric: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  progressBar: {
-    flex: 1,
-    height: '8px',
-    backgroundColor: '#e2e8f0',
-    borderRadius: '4px',
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    transition: 'width 0.3s ease',
-  },
-  recentActivity: {
-    backgroundColor: 'white',
-    padding: '20px',
-    borderRadius: '12px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-  },
-  sectionHeader: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '20px',
-  },
-  viewAllButton: {
-    padding: '6px 12px',
-    backgroundColor: 'transparent',
-    border: '1px solid #e2e8f0',
-    borderRadius: '6px',
-    cursor: 'pointer',
     fontSize: '14px',
     color: '#64748b',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#f1f5f9',
-      color: '#1e293b',
-    },
   },
-  activityList: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '15px',
+  // New styles for charts
+  chartsGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '20px',
+    marginTop: '20px',
   },
-  activityItem: {
-    display: 'flex',
-    alignItems: 'flex-start',
-    gap: '15px',
-    padding: '15px',
+  chartCard: {
     backgroundColor: '#f8fafc',
+    padding: '20px',
     borderRadius: '8px',
-  },
-  activityIcon: {
-    fontSize: '20px',
-  },
-  activityDetails: {
-    flex: 1,
-  },
-  activityText: {
-    margin: 0,
-    color: '#1e293b',
-  },
-  activityTime: {
-    color: '#64748b',
-    fontSize: '12px',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: '300px', // Ensure charts have enough height
   },
   tableContainer: {
     backgroundColor: 'white',
+    padding: '20px',
     borderRadius: '12px',
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-    overflow: 'hidden',
   },
   tableHeader: {
-    padding: '20px',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottom: '1px solid #e2e8f0',
+    marginBottom: '20px',
   },
   searchInput: {
+    width: '100%',
     padding: '8px 12px',
-    borderRadius: '8px',
     border: '1px solid #e2e8f0',
+    borderRadius: '6px',
     fontSize: '14px',
-    width: '300px',
-  },
-  addButton: {
-    padding: '8px 16px',
-    backgroundColor: '#4f46e5',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#4338ca',
-    },
   },
   table: {
     width: '100%',
     borderCollapse: 'collapse',
   },
-  userCell: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '10px',
-  },
-  userAvatar: {
-    width: '32px',
-    height: '32px',
-    backgroundColor: '#4f46e5',
-    color: 'white',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
+  tableHeader: {
+    textAlign: 'left',
+    padding: '12px',
+    backgroundColor: '#f8fafc',
+    color: '#64748b',
     fontSize: '14px',
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
-  roleBadge: {
+  tableRow: {
+    borderBottom: '1px solid #e2e8f0',
+  },
+  tableCell: {
+    padding: '12px',
+    fontSize: '14px',
+    color: '#1e293b',
+  },
+  badge: {
     padding: '4px 8px',
-    backgroundColor: '#f1f5f9',
-    color: '#64748b',
     borderRadius: '4px',
     fontSize: '12px',
-  },
-  statusBadge: {
-    padding: '4px 8px',
-    backgroundColor: '#f1f5f9',
-    color: '#64748b',
-    borderRadius: '4px',
-    fontSize: '12px',
-  },
-  actionButtons: {
-    display: 'flex',
-    gap: '8px',
-  },
-  editButton: {
-    padding: '6px 12px',
-    backgroundColor: '#f1f5f9',
-    color: '#64748b',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#e2e8f0',
-      color: '#1e293b',
-    },
+    color: 'white',
   },
   actionButton: {
     padding: '6px 12px',
@@ -782,113 +548,7 @@ const styles = {
     borderRadius: '6px',
     cursor: 'pointer',
     fontSize: '12px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#4338ca',
-    },
-  },
-  deleteButton: {
-    padding: '6px 12px',
-    backgroundColor: '#ef4444',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#dc2626',
-    },
-  },
-  settingsContainer: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-    padding: '20px',
-  },
-  settingsSection: {
-    marginBottom: '30px',
-  },
-  settingsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-    gap: '20px',
-    marginTop: '20px',
-  },
-  settingCard: {
-    backgroundColor: '#f8fafc',
-    padding: '20px',
-    borderRadius: '8px',
-  },
-  settingControl: {
-    marginTop: '15px',
-  },
-  maintenanceButton: {
-    padding: '8px 16px',
-    backgroundColor: '#4f46e5',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#4338ca',
-    },
-  },
-  backupButton: {
-    padding: '8px 16px',
-    backgroundColor: '#10b981',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#059669',
-    },
-  },
-  modalOverlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 1000,
-  },
-  modal: {
-    backgroundColor: 'white',
-    borderRadius: '12px',
-    width: '500px',
-    maxWidth: '90%',
-    maxHeight: '90vh',
-    overflow: 'auto',
-  },
-  modalHeader: {
-    padding: '20px',
-    borderBottom: '1px solid #e2e8f0',
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  closeButton: {
-    backgroundColor: 'transparent',
-    border: 'none',
-    fontSize: '24px',
-    cursor: 'pointer',
-    color: '#64748b',
-    '&:hover': {
-      color: '#1e293b',
-    },
-  },
-  modalContent: {
-    padding: '20px',
   },
 };
 
-export default AdminDashboard; 
+export default AdminDashboard;

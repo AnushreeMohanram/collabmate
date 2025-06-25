@@ -3,7 +3,7 @@ import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
 
 const Messages = () => {
-  const user = JSON.parse(localStorage.getItem('user'));
+  const user = JSON.parse(localStorage.getItem('user')); // Ensure currentUser is consistent
   const navigate = useNavigate();
   const [messages, setMessages] = useState({
     sent: [],
@@ -13,45 +13,38 @@ const Messages = () => {
   const [content, setContent] = useState('');
   const [receiverEmail, setReceiverEmail] = useState('');
   const [activeTab, setActiveTab] = useState('inbox');
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isComposing, setIsComposing] = useState(false);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteId, setPendingDeleteId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState(''); // Keep searchTerm state
 
   const fetchMessages = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // Fetch sent messages
-      const sentRes = await API.get('/messages', {
-        params: { type: 'sent' }
-      });
-      console.log('Sent messages response:', sentRes.data);
-      
-      // Fetch received messages
-      const receivedRes = await API.get('/messages', {
-        params: { type: 'received' }
-      });
-      console.log('Received messages response:', receivedRes.data);
+      // --- MODIFIED: Call existing backend endpoints with correct parameters ---
+      const [sentRes, receivedRes] = await Promise.all([
+        API.get('/messages', { params: { type: 'sent' } }),    // Use /messages?type=sent
+        API.get('/messages', { params: { type: 'received' } }) // Use /messages?type=received
+      ]);
 
-      // Ensure we have arrays even if the response is malformed
-      const sentMessages = Array.isArray(sentRes.data?.messages) ? sentRes.data.messages : [];
-      const receivedMessages = Array.isArray(receivedRes.data?.messages) ? receivedRes.data.messages : [];
-
-      console.log('Processed sent messages:', sentMessages);
-      console.log('Processed received messages:', receivedMessages);
+      console.log('Messages.jsx: Sent messages response:', sentRes.data);
+      console.log('Messages.jsx: Received messages response:', receivedRes.data);
 
       setMessages({
-        sent: sentMessages,
-        received: receivedMessages
+        // Backend now returns { messages: [...], pagination: {...} }
+        sent: sentRes.data?.messages || [],     
+        received: receivedRes.data?.messages || []
       });
     } catch (err) {
-      console.error('Error fetching messages:', err);
+      console.error('Messages.jsx: Error fetching messages:', err.response?.data || err.message);
       setError('Failed to fetch messages. Please try again.');
-      // Initialize with empty arrays on error
       setMessages({
         sent: [],
         received: []
@@ -63,95 +56,133 @@ const Messages = () => {
 
   useEffect(() => {
     fetchMessages();
-  }, []);
+  }, [activeTab]); // Trigger refetch on tab change to ensure filtered data is fresh
 
   const handleSend = async () => {
-    if (!receiverEmail || !subject || !content) {
-      alert('All fields required');
+    const trimmedSubject = subject.trim();
+    const trimmedContent = content.trim();
+
+    // New: Validate email format and prevent sending to self
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!receiverEmail || !emailRegex.test(receiverEmail)) {
+      setError('Please enter a valid recipient email.');
+      setSuccess(null);
       return;
     }
-
+    if (receiverEmail === user?.email) {
+      setError('You cannot send a message to yourself.');
+      setSuccess(null);
+      return;
+    }
+    if (!trimmedSubject || !trimmedContent) {
+      setError('Subject and message content are required.');
+      setSuccess(null);
+      return;
+    }
+    setError(null);
+    setSuccess(null);
     try {
       setSending(true);
-      console.log('Finding user with email:', receiverEmail);
       const userRes = await API.get(`/auth/email/${receiverEmail}`);
-      console.log('User found:', userRes.data);
-      
       if (!userRes.data || !userRes.data._id) {
-        alert('User not found');
+        setError('Recipient user not found.');
+        setSuccess(null);
         return;
       }
-
       const recipientId = userRes.data._id;
-      console.log('Sending message to recipient:', recipientId);
-
-      const messageData = {
-        recipientId,
-        subject: subject.trim(),
-        content: content.trim(),
-        type: 'message'
-      };
-      console.log('Message data:', messageData);
-
-      const response = await API.post('/messages', messageData, {
+      const messageData = { recipient: recipientId, subject: trimmedSubject, content: trimmedContent }; // Corrected payload field to 'recipient'
+      
+      // --- MODIFIED: Call the existing POST /messages endpoint ---
+      const response = await API.post('/messages', messageData, { // Use POST /messages
         headers: {
           'Content-Type': 'application/json'
         }
       });
-      console.log('Message sent successfully:', response.data);
+      console.log('Messages.jsx: Message sent successfully:', response.data);
 
-      // Update messages state with the new message
-      setMessages(prev => ({
-        ...prev,
-        sent: [response.data, ...prev.sent]
-      }));
+      // Re-fetch messages to ensure consistency with backend filtering logic.
+      fetchMessages();
 
-      // Reset form
       setReceiverEmail('');
       setSubject('');
       setContent('');
       setIsComposing(false);
-      alert('Message sent successfully!');
+      setSuccess('Message sent successfully!');
+      setError(null);
+      setActiveTab('sent');
+
     } catch (err) {
-      console.error('❌ Send Message Error:', err);
-      if (err.response?.data?.error) {
-        alert(`Error sending message: ${err.response.data.error}`);
-      } else {
-        alert('Error sending message. Please try again.');
-      }
+      console.error('Messages.jsx: ❌ Send Message Error:', err);
+      setError(`Error sending message: ${err.response?.data?.message || err.message}`);
+      setSuccess(null);
     } finally {
       setSending(false);
     }
   };
 
   const handleDelete = async (id) => {
+    const messageToDelete = displayedMessages.find(msg => msg._id === id);
+    if (!messageToDelete || !messageToDelete.conversation) {
+      setError('Cannot delete message: Associated conversation not found.');
+      setSuccess(null);
+      setShowDeleteConfirm(false);
+      setPendingDeleteId(null);
+      return;
+    }
     try {
-      await API.delete(`/messages/${id}`);
-      fetchMessages();
+      // This deletes the entire direct conversation associated with the message
+      await API.delete(`/messages/conversations/${messageToDelete.conversation._id}`); 
+      console.log('Messages.jsx: Message/Conversation deleted successfully from frontend.');
+      
+      fetchMessages(); // Refetch messages to update the lists
       if (selectedMessage?._id === id) {
-        setSelectedMessage(null);
+        setSelectedMessage(null); // Deselect if the deleted message was selected
       }
+      setSuccess('Message deleted successfully.');
+      setError(null);
     } catch (err) {
-      alert('Error deleting message');
+      console.error('Messages.jsx: Error deleting message/conversation:', err.response?.data || err.message);
+      setError('Error deleting message. ' + (err.response?.data?.message || err.message));
+      setSuccess(null);
+    } finally {
+      setShowDeleteConfirm(false);
+      setPendingDeleteId(null);
     }
   };
 
   const handleMarkAsRead = async (id) => {
     try {
-      await API.patch(`/messages/${id}/read`);
-      fetchMessages();
+      // Your backend has a PATCH /messages/:messageId/read endpoint (from your previously shared backend files).
+      await API.patch(`/messages/${id}/read`); 
+      
+      setMessages(prev => ({
+        sent: prev.sent.map(msg => msg._id === id ? { ...msg, read: true } : msg),
+        received: prev.received.map(msg => msg._id === id ? { ...msg, read: true } : msg)
+      }));
     } catch (err) {
-      console.error('Error marking message as read:', err);
+      console.error('Messages.jsx: Error marking message as read:', err);
+      setError('Failed to mark message as read.');
     }
   };
 
   const displayedMessages = activeTab === 'inbox' ? messages.received : messages.sent;
-  const filteredMessages = displayedMessages?.filter(msg => 
-    msg.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (activeTab === 'inbox' ? msg.sender?.email : msg.recipient?.email)
-      ?.toLowerCase()
-      .includes(searchTerm.toLowerCase())
-  ) || [];
+  const filteredMessages = displayedMessages?.filter(msg => {
+    const searchLower = searchTerm.toLowerCase();
+    const subjectMatch = msg.subject && msg.subject.toLowerCase().includes(searchLower);
+    
+    let senderRecipientEmail = '';
+    if (activeTab === 'inbox') {
+      senderRecipientEmail = msg.sender?.email;
+    } else {
+      senderRecipientEmail = msg.recipient?.email;
+    }
+    
+    const emailMatch = senderRecipientEmail && senderRecipientEmail.toLowerCase().includes(searchLower);
+    const contentMatch = msg.content && msg.content.toLowerCase().includes(searchLower);
+
+    return subjectMatch || emailMatch || contentMatch; // Search by content too
+  }) || [];
+
 
   return (
     <div style={styles.container}>
@@ -159,8 +190,13 @@ const Messages = () => {
         <h2 style={styles.heading}>📨 Messages</h2>
         <div style={styles.headerButtons}>
           <button 
-            onClick={() => setIsComposing(!isComposing)}
+            onClick={() => {
+                setIsComposing(!isComposing);
+                setError(null);
+                setSuccess(null);
+            }}
             style={styles.composeButton}
+            aria-label={isComposing ? 'Cancel composing message' : 'Compose new message'}
           >
             {isComposing ? '✕ Cancel' : '✏️ Compose'}
           </button>
@@ -168,51 +204,65 @@ const Messages = () => {
       </div>
 
       {error && (
-        <div style={styles.errorContainer}>
+        <div style={styles.errorContainer} role="alert">
           <p style={styles.errorText}>{error}</p>
           <button 
             onClick={fetchMessages}
             style={styles.retryButton}
+            aria-label="Retry fetching messages"
           >
             Retry
           </button>
         </div>
       )}
 
+      {success && (
+        <div style={{...styles.errorContainer, backgroundColor: '#dcfce7', border: '1px solid #86efac'}} role="status">
+          <p style={{...styles.errorText, color: '#166534'}}>{success}</p>
+        </div>
+      )}
+
       <div style={styles.mainContent}>
         {isComposing && (
           <div style={styles.composeSection}>
-            <h3 style={styles.sectionTitle}>New Message</h3>
+            <h3 style={styles.sectionTitle}>New Direct Message</h3>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>To:</label>
+              <label style={styles.label} htmlFor="dm-to">To:</label>
               <input
+                id="dm-to"
                 type="email"
                 placeholder="Recipient's Email"
                 value={receiverEmail}
                 onChange={(e) => setReceiverEmail(e.target.value)}
                 style={styles.input}
                 disabled={sending}
+                aria-label="Recipient's Email"
+                autoFocus
               />
             </div>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Subject:</label>
+              <label style={styles.label} htmlFor="dm-subject">Subject:</label>
               <input
+                id="dm-subject"
                 type="text"
                 placeholder="Message Subject"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 style={styles.input}
                 disabled={sending}
+                aria-label="Message Subject"
               />
             </div>
             <div style={styles.inputGroup}>
-              <label style={styles.label}>Message:</label>
+              <label style={styles.label} htmlFor="dm-content">Message:</label>
               <textarea
+                id="dm-content"
                 placeholder="Write your message..."
                 value={content}
                 onChange={(e) => setContent(e.target.value)}
                 style={styles.textarea}
                 disabled={sending}
+                aria-label="Message Content"
               />
             </div>
             <button 
@@ -223,8 +273,9 @@ const Messages = () => {
                 cursor: sending ? 'not-allowed' : 'pointer'
               }}
               disabled={sending}
+              aria-label="Send Message"
             >
-              {sending ? 'Sending...' : 'Send Message'}
+              {sending ? <span>Sending... <span className="spinner" /></span> : 'Send Message'}
             </button>
           </div>
         )}
@@ -235,12 +286,14 @@ const Messages = () => {
               <button 
                 onClick={() => setActiveTab('inbox')} 
                 style={activeTab === 'inbox' ? styles.activeTab : styles.tab}
+                aria-label="Inbox tab"
               >
                 Inbox ({messages.received.length})
               </button>
               <button 
                 onClick={() => setActiveTab('sent')} 
                 style={activeTab === 'sent' ? styles.activeTab : styles.tab}
+                aria-label="Sent tab"
               >
                 Sent ({messages.sent.length})
               </button>
@@ -252,6 +305,7 @@ const Messages = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={styles.searchInput}
+                aria-label="Search messages"
               />
               <span style={styles.searchIcon}>🔍</span>
             </div>
@@ -259,7 +313,7 @@ const Messages = () => {
 
           {loading ? (
             <div style={styles.loadingContainer}>
-              <div style={styles.loadingSpinner}></div>
+              <div style={styles.loadingSpinner} aria-label="Loading messages"></div>
               <p style={styles.loadingText}>Loading messages...</p>
             </div>
           ) : filteredMessages.length === 0 ? (
@@ -285,30 +339,35 @@ const Messages = () => {
                       handleMarkAsRead(msg._id);
                     }
                   }}
+                  tabIndex={0}
+                  aria-label={`Message from ${msg.sender?.email || msg.recipient?.email || 'Unknown'}: ${msg.subject}`}
+                  onKeyDown={e => { if (e.key === 'Enter') { setSelectedMessage(msg); } }}
                 >
                   <div style={styles.messageHeader}>
-                    <h4 style={styles.messageSubject}>{msg.subject}</h4>
+                    <h4 style={styles.messageSubject}>{msg.subject || '(No Subject)'}</h4>
                     {activeTab === 'inbox' && !msg.read && (
                       <span style={styles.unreadBadge}>New</span>
                     )}
                   </div>
                   <p style={styles.messageMeta}>
                     <strong>{activeTab === 'inbox' ? 'From' : 'To'}:</strong>{' '}
-                    {activeTab === 'inbox' ? msg.sender?.email : msg.recipient?.email}
+                    {activeTab === 'inbox' ? msg.sender?.email : msg.recipient?.email || '(Unknown)'}
                   </p>
                   <p style={styles.messagePreview}>
-                    {msg.content.length > 100 ? `${msg.content.substring(0, 100)}...` : msg.content}
+                    {(msg.content || '').length > 100 ? `${(msg.content || '').substring(0, 100)}...` : (msg.content || '(No Content)')}
                   </p>
                   <div style={styles.messageFooter}>
                     <p style={styles.messageDate}>
                       {new Date(msg.createdAt).toLocaleString()}
                     </p>
                     <button 
-                      onClick={(e) => {
+                      onClick={e => {
                         e.stopPropagation();
-                        handleDelete(msg._id);
+                        setShowDeleteConfirm(true);
+                        setPendingDeleteId(msg._id);
                       }} 
                       style={styles.deleteButton}
+                      aria-label="Delete message"
                     >
                       Delete
                     </button>
@@ -321,24 +380,55 @@ const Messages = () => {
       </div>
 
       {selectedMessage && (
-        <div style={styles.modal}>
+        <div style={styles.modal} role="dialog" aria-modal="true" tabIndex={-1}>
           <div style={styles.modalContent}>
             <button 
               onClick={() => setSelectedMessage(null)}
               style={styles.closeButton}
+              aria-label="Close message details"
+              autoFocus
             >
               ×
             </button>
-            <h3 style={styles.modalSubject}>{selectedMessage.subject}</h3>
+            <h3 style={styles.modalSubject}>{selectedMessage.subject || '(No Subject)'}</h3>
             <p style={styles.modalMeta}>
               <strong>{activeTab === 'inbox' ? 'From' : 'To'}:</strong>{' '}
-              {activeTab === 'inbox' ? selectedMessage.sender?.email : selectedMessage.recipient?.email}
+              {selectedMessage.sender?.email || selectedMessage.recipient?.email || '(Unknown)'}
             </p>
             <p style={styles.modalDate}>
               {new Date(selectedMessage.createdAt).toLocaleString()}
             </p>
             <div style={styles.modalBody}>
-              {selectedMessage.content}
+              {selectedMessage.content || '(No Content)'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Dialog */}
+      {showDeleteConfirm && (
+        <div style={styles.modal} role="dialog" aria-modal="true" tabIndex={-1}>
+          <div style={styles.modalContent}>
+            <h3 style={styles.modalSubject}>Delete Message</h3>
+            <p style={styles.modalBody}>Are you sure you want to delete this message? This action cannot be undone.</p>
+            <div style={{ display: 'flex', gap: '16px', marginTop: '24px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowDeleteConfirm(false);
+                  setPendingDeleteId(null);
+                }}
+                style={{ ...styles.sendButton, backgroundColor: '#f1f5f9', color: '#1e293b' }}
+                aria-label="Cancel delete"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleDelete(pendingDeleteId)}
+                style={{ ...styles.sendButton, backgroundColor: '#ef4444' }}
+                aria-label="Confirm delete"
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
@@ -702,11 +792,16 @@ const styles = {
     flexDirection: 'column',
     alignItems: 'center',
     padding: '40px',
+    backgroundColor: '#fee2e2',
+    borderRadius: '8px',
+    marginBottom: '20px',
+    border: '1px solid #fca5a5',
   },
   errorText: {
     fontSize: '16px',
     color: '#dc2626',
     marginBottom: '20px',
+    textAlign: 'center',
   },
   retryButton: {
     padding: '10px 20px',

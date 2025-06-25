@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API from '../api/axios';
+import API from '../api/axios'; // Ensure this path is correct
 
 const Collaborators = () => {
   const [users, setUsers] = useState([]);
@@ -29,21 +29,36 @@ const Collaborators = () => {
 
       // Fetch all data in parallel
       const [usersRes, projectsRes, requestsRes] = await Promise.all([
-        API.get('/users'),
+        // IMPORTANT: Confirm your backend's actual endpoint for searching/getting users.
+        // If it's '/api/admin/users' or another specific path, use that.
+        // Assuming '/users-search' returns either an array directly OR { users: [...] } OR { data: [...] }
+        API.get('/users-search'),
+        // IMPORTANT: Confirm your backend's actual endpoint for projects.
+        // If it's '/api/admin/projects' or another specific path, use that.
         API.get('/projects'),
+        // IMPORTANT: Confirm your backend's actual endpoint for collaboration requests.
+        // If it's '/api/admin/collaborations' or another specific path, use that.
         API.get('/collaborations/requests')
       ]);
 
-      setUsers(usersRes.data);
-      setProjects(projectsRes.data);
+      // ✅ CRITICAL FIX for Data Structure: Ensure API responses are correctly parsed into arrays.
+      // This handles cases where API might wrap the array in an object (e.g., { users: [...] })
+      const usersData = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.users || usersRes.data.data || [];
+      setUsers(usersData);
+
+      const projectsData = Array.isArray(projectsRes.data) ? projectsRes.data : projectsRes.data.projects || projectsRes.data.data || [];
+      setProjects(projectsData);
+      
+      const requestsData = Array.isArray(requestsRes.data) ? requestsRes.data : requestsRes.data.requests || requestsRes.data.data || [];
       
       // Separate pending and accepted requests
-      const requests = requestsRes.data.requests || [];
-      setPendingRequests(requests.filter(req => req.status === 'pending'));
-      setAcceptedRequests(requests.filter(req => req.status === 'accepted'));
+      setPendingRequests(requestsData.filter(req => req.status === 'pending'));
+      setAcceptedRequests(requestsData.filter(req => req.status === 'accepted'));
 
     } catch (err) {
       console.error('Failed to fetch data:', err);
+      // Log the specific error response for more details
+      console.error('API Error Response:', err.response?.data);
       setError('Failed to load data. Please try again.');
     } finally {
       setLoading(false);
@@ -156,11 +171,14 @@ const Collaborators = () => {
   };
 
   const filteredUsers = users.filter(u =>
-    u.name.toLowerCase().includes(search.toLowerCase()) ||
-    u.email.toLowerCase().includes(search.toLowerCase()) ||
-    (u.skills && u.skills.some(skill => 
-      skill.toLowerCase().includes(search.toLowerCase())
-    ))
+    // Ensure 'u' is a valid object and has 'name' before checking
+    u && typeof u === 'object' && u.name && (
+      u.name.toLowerCase().includes(search.toLowerCase()) ||
+      (u.email && u.email.toLowerCase().includes(search.toLowerCase())) ||
+      (u.skills && Array.isArray(u.skills) && u.skills.some(skill => 
+        typeof skill === 'string' && skill.toLowerCase().includes(search.toLowerCase())
+      ))
+    )
   );
 
   return (
@@ -231,34 +249,40 @@ const Collaborators = () => {
           ) : (
             <div style={styles.grid}>
               {filteredUsers.map((user) => (
-                <div 
-                  key={user._id} 
-                  style={styles.card}
-                  onClick={() => handleConnect(user)}
-                >
-                  <div style={styles.cardHeader}>
-                    <h3 style={styles.userName}>{user.name}</h3>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleConnect(user);
-                      }}
-                      style={styles.connectButton}
-                    >
-                      Invite to Project
-                    </button>
-                  </div>
-                  <p style={styles.userEmail}>{user.email}</p>
-                  {user.skills && user.skills.length > 0 && (
-                    <div style={styles.skillsContainer}>
-                      {user.skills.map((skill, index) => (
-                        <span key={index} style={styles.skillTag}>
-                          {skill}
-                        </span>
-                      ))}
+                // ✅ Defensive check for user object before accessing properties
+                user && typeof user === 'object' && user._id ? (
+                  <div 
+                    key={user._id} 
+                    style={styles.card}
+                    onClick={() => handleConnect(user)}
+                  >
+                    <div style={styles.cardHeader}>
+                      {/* Ensure user.name is always a string for rendering */}
+                      <h3 style={styles.userName}>{String(user.name || 'N/A')}</h3>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleConnect(user);
+                        }}
+                        style={styles.connectButton}
+                      >
+                        Invite to Project
+                      </button>
                     </div>
-                  )}
-                </div>
+                    {/* Ensure user.email is always a string for rendering */}
+                    <p style={styles.userEmail}>{String(user.email || 'N/A')}</p>
+                    {user.skills && Array.isArray(user.skills) && user.skills.length > 0 && (
+                      <div style={styles.skillsContainer}>
+                        {user.skills.map((skill, index) => (
+                          // Ensure skill is a string for rendering
+                          <span key={index} style={styles.skillTag}>
+                            {String(skill || 'N/A')}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : null // Don't render if user or _id is invalid
               ))}
             </div>
           )}
@@ -275,31 +299,35 @@ const Collaborators = () => {
                 <div style={styles.requestsSection}>
                   <h3 style={styles.sectionTitle}>Pending Requests</h3>
                   {pendingRequests.map(request => (
-                    <div key={request._id} style={styles.requestCard}>
-                      <div style={styles.requestHeader}>
-                        <h4 style={styles.requestTitle}>
-                          {request.sender.name} invited you to collaborate on {request.project.name}
-                        </h4>
-                        <span style={styles.requestRole}>{request.role}</span>
+                    // ✅ Defensive check for request object and _id
+                    request && typeof request === 'object' && request._id ? (
+                      <div key={request._id} style={styles.requestCard}>
+                        <div style={styles.requestHeader}>
+                          {/* ✅ Ensure sender.name and project.name are strings */}
+                          <h4 style={styles.requestTitle}>
+                            {String((request.sender && request.sender.name) || 'Unknown User')} invited you to collaborate on {String((request.project && request.project.name) || 'Unknown Project')}
+                          </h4>
+                          <span style={styles.requestRole}>{String(request.role || 'N/A')}</span>
+                        </div>
+                        {request.message && (
+                          <p style={styles.requestMessage}>{String(request.message)}</p>
+                        )}
+                        <div style={styles.requestActions}>
+                          <button
+                            onClick={() => handleAcceptRequest(request._id)}
+                            style={styles.acceptButton}
+                          >
+                            Accept
+                          </button>
+                          <button
+                            onClick={() => handleRejectRequest(request._id)}
+                            style={styles.rejectButton}
+                          >
+                            Reject
+                          </button>
+                        </div>
                       </div>
-                      {request.message && (
-                        <p style={styles.requestMessage}>{request.message}</p>
-                      )}
-                      <div style={styles.requestActions}>
-                        <button
-                          onClick={() => handleAcceptRequest(request._id)}
-                          style={styles.acceptButton}
-                        >
-                          Accept
-                        </button>
-                        <button
-                          onClick={() => handleRejectRequest(request._id)}
-                          style={styles.rejectButton}
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
+                    ) : null // Don't render if request or _id is invalid
                   ))}
                 </div>
               )}
@@ -308,19 +336,23 @@ const Collaborators = () => {
                 <div style={styles.requestsSection}>
                   <h3 style={styles.sectionTitle}>Active Collaborations</h3>
                   {acceptedRequests.map(request => (
-                    <div key={request._id} style={styles.requestCard}>
-                      <div style={styles.requestHeader}>
-                        <h4 style={styles.requestTitle}>
-                          Collaborating on {request.project.name} with {request.sender.name}
-                        </h4>
-                        <span style={styles.requestRole}>{request.role}</span>
+                    // ✅ Defensive check for request object and _id
+                    request && typeof request === 'object' && request._id ? (
+                      <div key={request._id} style={styles.requestCard}>
+                        <div style={styles.requestHeader}>
+                          {/* ✅ Ensure project.name and sender.name are strings */}
+                          <h4 style={styles.requestTitle}>
+                            Collaborating on {String((request.project && request.project.name) || 'Unknown Project')} with {String((request.sender && request.sender.name) || 'Unknown User')}
+                          </h4>
+                          <span style={styles.requestRole}>{String(request.role || 'N/A')}</span>
+                        </div>
+                        <div style={styles.collaborationInfo}>
+                          <p style={styles.collaborationDate}>
+                            Started {new Date(request.updatedAt).toLocaleDateString()}
+                          </p>
+                        </div>
                       </div>
-                      <div style={styles.collaborationInfo}>
-                        <p style={styles.collaborationDate}>
-                          Started {new Date(request.updatedAt).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
+                    ) : null // Don't render if request or _id is invalid
                   ))}
                 </div>
               )}
@@ -341,7 +373,8 @@ const Collaborators = () => {
             >
               ×
             </button>
-            <h3 style={styles.modalTitle}>Connect with {selectedUser.name}</h3>
+            {/* ✅ Ensure selectedUser.name is a string */}
+            <h3 style={styles.modalTitle}>Connect with {String(selectedUser.name || 'User')}</h3>
             
             <div style={styles.collaborationForm}>
               <h4 style={styles.modalSubtitle}>Invite to Project</h4>
@@ -354,11 +387,14 @@ const Collaborators = () => {
                 style={styles.select}
               >
                 <option value="">Select a project</option>
-                {projects.map(project => (
-                  <option key={project._id} value={project._id}>
-                    {project.title}
-                  </option>
-                ))}
+                {projects
+                  .filter(project => project && project._id && (project.name || project.title)) // Filter out malformed projects
+                  .map(project => (
+                    <option key={project._id} value={project._id}>
+                      {/* ✅ Ensure project name/title is a string */}
+                      {String(project.name || project.title || 'Untitled Project')}
+                    </option>
+                  ))}
               </select>
               
               <select

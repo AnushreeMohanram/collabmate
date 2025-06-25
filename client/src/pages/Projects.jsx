@@ -22,8 +22,8 @@ const Projects = () => {
     setFilteredProjects(
       projects.filter(
         (proj) =>
-          proj.title.toLowerCase().includes(term) ||
-          proj.description.toLowerCase().includes(term)
+          ((proj.name || proj.title || '').toLowerCase().includes(term)) ||
+          ((proj.description || '').toLowerCase().includes(term))
       )
     );
   }, [searchTerm, projects]);
@@ -49,7 +49,7 @@ const Projects = () => {
   const handleAdd = async (title, description) => {
     if (!title.trim() || !description.trim()) return;
     try {
-      await API.post('/projects', { title, description });
+      await API.post('/projects', { name: title, description });
       fetchProjects();
     } catch (err) {
       alert('Failed to add project');

@@ -34,6 +34,9 @@ const AdminDashboard = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [userActivity, setUserActivity] = useState(null);
+  const [collaborations, setCollaborations] = useState([]);
+  const [loadingCollaborations, setLoadingCollaborations] = useState(false);
+  const [collaborationsError, setCollaborationsError] = useState(null);
 
   const fetchDashboardData = async () => {
     try {
@@ -75,6 +78,26 @@ const AdminDashboard = () => {
     }
   };
 
+  const fetchCollaborations = async () => {
+    try {
+      setLoadingCollaborations(true);
+      setCollaborationsError(null);
+      const token = localStorage.getItem('token');
+      const config = {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      };
+      const res = await API.get('/admin/collaborations', config);
+      setCollaborations(res.data);
+    } catch (err) {
+      console.error('Failed to fetch collaborations:', err);
+      setCollaborationsError('Failed to load collaborations');
+    } finally {
+      setLoadingCollaborations(false);
+    }
+  };
+
   const fetchUserActivity = async (userId) => {
     try {
       const res = await API.get(`/admin/users/${userId}/activity`);
@@ -88,6 +111,10 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchDashboardData();
   }, [dateRange, currentPage, searchTerm, filterStatus, sortBy]);
+
+  useEffect(() => {
+    fetchCollaborations();
+  }, []);
 
   const handleUserAction = async (userId, action) => {
     try {
@@ -221,6 +248,12 @@ const AdminDashboard = () => {
           style={activeTab === 'projects' ? styles.activeTab : styles.tab}
         >
           Projects
+        </button>
+        <button
+          onClick={() => setActiveTab('collaborations')}
+          style={activeTab === 'collaborations' ? styles.activeTab : styles.tab}
+        >
+          Collaborations
         </button>
       </div>
 
@@ -474,92 +507,31 @@ const AdminDashboard = () => {
             <table style={styles.table}>
               <thead>
                 <tr>
-                  <th style={styles.tableHeader}>Title</th>
-                  <th style={styles.tableHeader}>Owner</th>
-                  <th style={styles.tableHeader}>Collaborators</th>
+                  <th style={styles.tableHeader}>Project</th>
+                  <th style={styles.tableHeader}>Collaborator</th>
+                  <th style={styles.tableHeader}>Role</th>
                   <th style={styles.tableHeader}>Status</th>
-                  <th style={styles.tableHeader}>Actions</th>
+                  <th style={styles.tableHeader}>Message</th>
+                  <th style={styles.tableHeader}>Requested At</th>
                 </tr>
               </thead>
               <tbody>
-                {projects.map(project => (
-                  <tr key={project._id} style={styles.tableRow}>
+                {collaborations.map(collab => (
+                  <tr key={collab.id} style={styles.tableRow}>
+                    <td style={styles.tableCell}>{collab.projectName}</td>
                     <td style={styles.tableCell}>
-                      <div style={styles.projectCell}>
-                        <div style={styles.projectIcon}>📁</div>
-                        <span>{project.title}</span>
-                      </div>
+                      {collab.receiverName} ({collab.receiverEmail})
                     </td>
-                    <td style={styles.tableCell}>
-                      <div style={styles.userCell}>
-                        <div style={styles.avatar}>
-                          {project.owner.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{project.owner.name}</span>
-                      </div>
-                    </td>
-                    <td style={styles.tableCell}>
-                      <div style={styles.collaborators}>
-                        {project.collaborators.map(collab => (
-                          <div key={collab._id} style={styles.avatar} title={collab.name}>
-                            {collab.name.charAt(0).toUpperCase()}
-                          </div>
-                        ))}
-                      </div>
-                    </td>
-                    <td style={styles.tableCell}>
-                      <span style={{
-                        ...styles.badge,
-                        backgroundColor: project.status === 'active' ? '#10b981' : '#64748b'
-                      }}>
-                        {project.status}
-                      </span>
-                    </td>
-                    <td style={styles.tableCell}>
-                      <div style={styles.actionButtons}>
-                        <button
-                          onClick={() => handleProjectSelect(project)}
-                          style={styles.actionButton}
-                        >
-                          View
-                        </button>
-                        {project.status === 'active' && (
-                          <button
-                            onClick={() => handleProjectAction(project._id)}
-                            style={{
-                              ...styles.actionButton,
-                              backgroundColor: '#ef4444'
-                            }}
-                          >
-                            Archive
-                          </button>
-                        )}
-                      </div>
-                    </td>
+                    <td style={styles.tableCell}>{collab.role}</td>
+                    <td style={styles.tableCell}>{collab.status}</td>
+                    <td style={styles.tableCell}>{collab.message || '-'}</td>
+                    <td style={styles.tableCell}>{new Date(collab.createdAt).toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
-
-          <div style={styles.pagination}>
-            <button
-              onClick={() => handlePageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              style={styles.pageButton}
-            >
-              Previous
-            </button>
-            <span style={styles.pageInfo}>
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => handlePageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              style={styles.pageButton}
-            >
-              Next
-            </button>
+            {loadingCollaborations && <p>Loading collaborations...</p>}
+            {collaborationsError && <p style={{color: 'red'}}>{collaborationsError}</p>}
           </div>
         </div>
       )}
@@ -697,6 +669,8 @@ const styles = {
     background: 'linear-gradient(135deg, #f0f4ff, #fff)',
     width: 'calc(100% - 240px)',
     boxSizing: 'border-box',
+    position: 'relative',
+    minWidth: 0,
   },
   header: {
     display: 'flex',
@@ -776,17 +750,29 @@ const styles = {
     display: 'flex',
     flexDirection: 'column',
     gap: '30px',
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: '0 0 30px 0',
   },
   statsGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-    gap: '20px',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))',
+    gap: '24px',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   statCard: {
     backgroundColor: 'white',
     padding: '20px',
     borderRadius: '12px',
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    minWidth: '220px',
+    minHeight: '140px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    boxSizing: 'border-box',
   },
   statTitle: {
     fontSize: '16px',
@@ -820,6 +806,9 @@ const styles = {
     padding: '20px',
     borderRadius: '12px',
     boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
+    marginTop: '16px',
+    width: '100%',
+    boxSizing: 'border-box',
   },
   sectionTitle: {
     fontSize: '18px',
