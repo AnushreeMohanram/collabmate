@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const Messages = () => {
-  const user = JSON.parse(localStorage.getItem('user')); // Ensure currentUser is consistent
+  const user = JSON.parse(localStorage.getItem('user')); 
   const navigate = useNavigate();
   const [messages, setMessages] = useState({
     sent: [],
@@ -21,24 +22,24 @@ const Messages = () => {
   const [success, setSuccess] = useState(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [pendingDeleteId, setPendingDeleteId] = useState(null);
-  const [searchTerm, setSearchTerm] = useState(''); // Keep searchTerm state
+  const [searchTerm, setSearchTerm] = useState(''); 
 
   const fetchMessages = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      // --- MODIFIED: Call existing backend endpoints with correct parameters ---
+     
       const [sentRes, receivedRes] = await Promise.all([
-        API.get('/messages', { params: { type: 'sent' } }),    // Use /messages?type=sent
-        API.get('/messages', { params: { type: 'received' } }) // Use /messages?type=received
+        API.get('/messages', { params: { type: 'sent' } }),    
+        API.get('/messages', { params: { type: 'received' } }) 
       ]);
 
       console.log('Messages.jsx: Sent messages response:', sentRes.data);
       console.log('Messages.jsx: Received messages response:', receivedRes.data);
 
       setMessages({
-        // Backend now returns { messages: [...], pagination: {...} }
+        
         sent: sentRes.data?.messages || [],     
         received: receivedRes.data?.messages || []
       });
@@ -56,13 +57,13 @@ const Messages = () => {
 
   useEffect(() => {
     fetchMessages();
-  }, [activeTab]); // Trigger refetch on tab change to ensure filtered data is fresh
+  }, [activeTab]); 
 
   const handleSend = async () => {
     const trimmedSubject = subject.trim();
     const trimmedContent = content.trim();
 
-    // New: Validate email format and prevent sending to self
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!receiverEmail || !emailRegex.test(receiverEmail)) {
       setError('Please enter a valid recipient email.');
@@ -90,17 +91,17 @@ const Messages = () => {
         return;
       }
       const recipientId = userRes.data._id;
-      const messageData = { recipient: recipientId, subject: trimmedSubject, content: trimmedContent }; // Corrected payload field to 'recipient'
+      const messageData = { recipientId: recipientId, subject: trimmedSubject, content: trimmedContent };
       
-      // --- MODIFIED: Call the existing POST /messages endpoint ---
-      const response = await API.post('/messages', messageData, { // Use POST /messages
+      
+      const response = await API.post('/messages', messageData, { 
         headers: {
           'Content-Type': 'application/json'
         }
       });
       console.log('Messages.jsx: Message sent successfully:', response.data);
 
-      // Re-fetch messages to ensure consistency with backend filtering logic.
+   
       fetchMessages();
 
       setReceiverEmail('');
@@ -110,6 +111,13 @@ const Messages = () => {
       setSuccess('Message sent successfully!');
       setError(null);
       setActiveTab('sent');
+      Swal.fire({
+        icon: 'success',
+        title: 'Message Sent',
+        text: 'Your message was sent successfully!',
+        timer: 2500,
+        timerProgressBar: true
+      });
 
     } catch (err) {
       console.error('Messages.jsx: ❌ Send Message Error:', err);
@@ -130,13 +138,12 @@ const Messages = () => {
       return;
     }
     try {
-      // This deletes the entire direct conversation associated with the message
-      await API.delete(`/messages/conversations/${messageToDelete.conversation._id}`); 
+      await API.delete(`/conversations/${messageToDelete.conversation._id}`); 
       console.log('Messages.jsx: Message/Conversation deleted successfully from frontend.');
       
-      fetchMessages(); // Refetch messages to update the lists
+      fetchMessages(); 
       if (selectedMessage?._id === id) {
-        setSelectedMessage(null); // Deselect if the deleted message was selected
+        setSelectedMessage(null); 
       }
       setSuccess('Message deleted successfully.');
       setError(null);
@@ -152,7 +159,6 @@ const Messages = () => {
 
   const handleMarkAsRead = async (id) => {
     try {
-      // Your backend has a PATCH /messages/:messageId/read endpoint (from your previously shared backend files).
       await API.patch(`/messages/${id}/read`); 
       
       setMessages(prev => ({

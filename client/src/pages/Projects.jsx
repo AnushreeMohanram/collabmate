@@ -3,6 +3,7 @@ import API from '../api/axios';
 import ProjectCard from './ProjectCard';
 import FilterBar from './FilterBar';
 import Swal from 'sweetalert2';
+import ProjectCalendar from './ProjectCalendar';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
@@ -14,6 +15,8 @@ const Projects = () => {
   const [loading, setLoading] = useState(true);
   const [selectedProject, setSelectedProject] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
+  const [activeProjectTab, setActiveProjectTab] = useState('details');
+  const user = JSON.parse(localStorage.getItem('user'));
 
   useEffect(() => {
     fetchProjects();
@@ -163,93 +166,117 @@ const Projects = () => {
         <div style={styles.modalOverlay} onClick={() => setSelectedProject(null)}>
           <div style={{
             ...styles.modal,
-            backgroundColor: '#fff',
-            border: '1.5px solid #e5e7eb',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
-            maxWidth: 420,
-            padding: 36,
+            maxWidth: activeProjectTab === 'calendar' ? 1100 : 420,
+            width: activeProjectTab === 'calendar' ? '95vw' : '90%',
+            minHeight: activeProjectTab === 'calendar' ? 650 : undefined,
+            overflow: 'visible',
+            padding: activeProjectTab === 'calendar' ? 0 : 36,
             position: 'relative',
+            zIndex: 2000,
           }} onClick={e => e.stopPropagation()}>
-            <h2 style={{...styles.modalTitle, marginBottom: 8}}>{selectedProject.name || selectedProject.title}</h2>
-            <p style={{...styles.modalTextarea, color: '#475569', fontSize: 15, marginBottom: 18}}>{selectedProject.description}</p>
-            <div style={{ margin: '24px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
-              <span style={{ fontWeight: 600, fontSize: 15, color: '#334155' }}>Status:</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span style={{ color: selectedProject.status === 'completed' ? '#22c55e' : '#64748b', fontWeight: 500, fontSize: 15 }}>
-                  {selectedProject.status === 'completed' ? 'Completed' : 'Active'}
-                </span>
-                {/* Modern Switch */}
-                <label style={{ position: 'relative', display: 'inline-block', width: 48, height: 26, marginLeft: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedProject.status === 'completed'}
-                    onChange={async (e) => {
-                      const newStatus = e.target.checked ? 'completed' : 'active';
-                      try {
-                        await API.patch(`/projects/${selectedProject._id}`, { status: newStatus });
-                        setSelectedProject({ ...selectedProject, status: newStatus });
-                        setProjects(projects => projects.map(p => p._id === selectedProject._id ? { ...p, status: newStatus } : p));
-                        await Swal.fire({
-                          icon: 'success',
-                          title: 'Status Updated',
-                          text: `Project marked as ${newStatus}.`,
-                          background: newStatus === 'completed' ? '#d1fae5' : '#e0e7ff',
-                          color: newStatus === 'completed' ? '#065f46' : '#1e293b',
-                          confirmButtonColor: newStatus === 'completed' ? '#22c55e' : '#4f46e5',
-                          customClass: { popup: 'swal2-border-radius' }
-                        });
-                      } catch (err) {
-                        await Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update project status.' });
-                      }
-                    }}
-                    style={{ opacity: 0, width: 0, height: 0 }}
-                  />
-                  <span style={{
-                    position: 'absolute',
-                    cursor: 'pointer',
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: selectedProject.status === 'completed' ? '#22c55e' : '#e5e7eb',
-                    borderRadius: 26,
-                    transition: 'background 0.2s',
-                    boxShadow: selectedProject.status === 'completed' ? '0 0 0 2px #bbf7d0' : 'none',
-                  }}></span>
-                  <span style={{
-                    position: 'absolute',
-                    left: selectedProject.status === 'completed' ? 24 : 2,
-                    top: 2,
-                    width: 22,
-                    height: 22,
-                    background: '#fff',
-                    borderRadius: '50%',
-                    boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
-                    transition: 'left 0.2s',
-                    border: '1.5px solid #e5e7eb',
-                  }}></span>
-                </label>
-              </div>
-            </div>
             <button
               style={{
-                ...styles.modalButton,
-                backgroundColor: '#4f46e5',
-                color: '#fff',
-                fontWeight: 600,
-                fontSize: 15,
-                borderRadius: 8,
-                padding: '10px 28px',
-                marginTop: 10,
-                boxShadow: '0 2px 8px rgba(79,70,229,0.08)',
+                position: 'absolute',
+                top: 24,
+                right: 24,
+                background: '#fff',
                 border: 'none',
+                fontSize: 40,
+                color: '#1e293b',
                 cursor: 'pointer',
-                transition: 'background 0.2s',
+                zIndex: 2100,
+                padding: 0,
+                lineHeight: 1,
+                borderRadius: '50%',
+                width: 48,
+                height: 48,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontWeight: 700,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.10)',
+                transition: 'background 0.2s, color 0.2s',
               }}
+              onMouseOver={e => { e.currentTarget.style.background = '#f1f5f9'; e.currentTarget.style.color = '#4f46e5'; }}
+              onMouseOut={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.color = '#1e293b'; }}
+              aria-label="Close project details"
               onClick={() => setSelectedProject(null)}
             >
-              Close
+              ×
             </button>
+            <h2 style={{...styles.modalTitle, marginBottom: 8}}>{selectedProject.name || selectedProject.title}</h2>
+            <div style={{ display: 'flex', gap: 16, marginBottom: 18 }}>
+              <button onClick={() => setActiveProjectTab('details')} style={{ ...styles.tab, ...(activeProjectTab === 'details' ? styles.activeTab : {}) }}>Details</button>
+              <button onClick={() => setActiveProjectTab('calendar')} style={{ ...styles.tab, ...(activeProjectTab === 'calendar' ? styles.activeTab : {}) }}>Calendar & Tasks</button>
+            </div>
+            {activeProjectTab === 'details' && (
+              <>
+                <p style={{...styles.modalTextarea, color: '#475569', fontSize: 15, marginBottom: 18}}>{selectedProject.description}</p>
+                <div style={{ margin: '24px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+                  <span style={{ fontWeight: 600, fontSize: 15, color: '#334155' }}>Status:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ color: selectedProject.status === 'completed' ? '#22c55e' : '#64748b', fontWeight: 500, fontSize: 15 }}>
+                      {selectedProject.status === 'completed' ? 'Completed' : 'Active'}
+                    </span>
+                    {selectedProject.userRole === 'owner' && user && (
+                      <label style={{ position: 'relative', display: 'inline-block', width: 48, height: 26, marginLeft: 8 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedProject.status === 'completed'}
+                          onChange={async (e) => {
+                            const newStatus = e.target.checked ? 'completed' : 'active';
+                            try {
+                              await API.patch(`/projects/${selectedProject._id}`, { status: newStatus });
+                              setSelectedProject({ ...selectedProject, status: newStatus });
+                              setProjects(projects => projects.map(p => p._id === selectedProject._id ? { ...p, status: newStatus } : p));
+                              await Swal.fire({
+                                icon: 'success',
+                                title: 'Status Updated',
+                                text: `Project marked as ${newStatus}.`,
+                                background: newStatus === 'completed' ? '#d1fae5' : '#e0e7ff',
+                                color: newStatus === 'completed' ? '#065f46' : '#1e293b',
+                                confirmButtonColor: newStatus === 'completed' ? '#22c55e' : '#4f46e5',
+                                customClass: { popup: 'swal2-border-radius' }
+                              });
+                            } catch (err) {
+                              await Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update project status.' });
+                            }
+                          }}
+                          style={{ opacity: 0, width: 0, height: 0 }}
+                        />
+                        <span style={{
+                          position: 'absolute',
+                          cursor: 'pointer',
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          bottom: 0,
+                          background: selectedProject.status === 'completed' ? '#22c55e' : '#e5e7eb',
+                          borderRadius: 26,
+                          transition: 'background 0.2s',
+                          boxShadow: selectedProject.status === 'completed' ? '0 0 0 2px #bbf7d0' : 'none',
+                        }}></span>
+                        <span style={{
+                          position: 'absolute',
+                          left: selectedProject.status === 'completed' ? 24 : 2,
+                          top: 2,
+                          width: 22,
+                          height: 22,
+                          background: '#fff',
+                          borderRadius: '50%',
+                          boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+                          transition: 'left 0.2s',
+                          border: '1.5px solid #e5e7eb',
+                        }}></span>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </>
+            )}
+            {activeProjectTab === 'calendar' && (
+              <ProjectCalendar projectId={selectedProject._id} />
+            )}
           </div>
         </div>
       )}

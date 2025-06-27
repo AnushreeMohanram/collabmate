@@ -12,7 +12,7 @@ const Login = () => {
   const [passwordError, setPasswordError] = useState('');
   const [formError, setFormError] = useState('');
 
-  const navigate = useNavigate(); // useNavigate from react-router-dom
+  const navigate = useNavigate(); 
 
   const validateEmail = (value) => {
     if (!value.trim()) return 'Email is required.';
@@ -56,14 +56,14 @@ const Login = () => {
       const res = await API.post('/auth/login', { email, password });
       const data = res.data;
 
-      // Store user data
+      
       localStorage.setItem('token', data.token);
       localStorage.setItem('role', data.user.role);
       localStorage.setItem('email', data.user.email);
       localStorage.setItem('name', data.user.name);
       localStorage.setItem('user', JSON.stringify(data.user));
 
-      // Navigate based on role
+      
       if (data.user.role === 'admin') {
         navigate('/admin');
       } else {

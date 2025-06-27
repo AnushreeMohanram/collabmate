@@ -78,6 +78,8 @@ const collaboratorsRoutes = require('./routes/collaborators'); // For searching/
 const conversationRoutes = require('./routes/conversationRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const attachmentRoutes = require('./routes/attachmentRoutes'); // If you have separate routes for general attachments
+const eventRoutes = require('./routes/eventRoutes');
+const taskRoutes = require('./routes/taskRoutes');
 
 // Log typeof for debugging (can be removed in production)
 console.log('authRoutes:', typeof authRoutes);
@@ -90,6 +92,8 @@ console.log('collaboratorsRoutes:', typeof collaboratorsRoutes);
 console.log('conversationRoutes:', typeof conversationRoutes);
 console.log('aiRoutes:', typeof aiRoutes);
 console.log('attachmentRoutes:', typeof attachmentRoutes);
+console.log('eventRoutes:', typeof eventRoutes);
+console.log('taskRoutes:', typeof taskRoutes);
 
 // --- Mount your API Routes ---
 app.use('/api/auth', authRoutes);
@@ -109,6 +113,8 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/conversations', conversationRoutes);
 app.use('/api/ai', aiRoutes); 
 app.use('/api/attachments', attachmentRoutes); // Ensure this path is correct if still used
+app.use('/api/events', eventRoutes);
+app.use('/api/tasks', taskRoutes);
 
 // Log all requests (useful for debugging network issues)
 app.use((req, res, next) => {
@@ -151,7 +157,6 @@ app.use((req, res) => {
   });
 });
 
-
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
@@ -166,4 +171,6 @@ app.listen(PORT, () => {
   console.log('- /api/conversations');
   console.log('- /api/ai');
   console.log('- /api/attachments');
+  console.log('- /api/events');
+  console.log('- /api/tasks');
 });

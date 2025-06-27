@@ -12,44 +12,41 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
 
-  // State for form inputs when editing
+  
   const [editedName, setEditedName] = useState('');
-  // removed editedAvatar state as it's handled by selectedAvatarFile and userProfile.avatar
   const [editedInterests, setEditedInterests] = useState([]);
-  const [editedSkills, setEditedSkills] = useState([]); // This will be an array of objects
+  const [editedSkills, setEditedSkills] = useState([]); 
 
-  // State for adding a new skill
+  
   const [newSkillName, setNewSkillName] = useState('');
   const [newSkillLevel, setNewSkillLevel] = useState('beginner');
 
-  // NEW STATE FOR AI SUGGESTIONS
+  
   const [aiSuggestions, setAiSuggestions] = useState(null);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [suggestionsError, setSuggestionsError] = useState(null);
 
-  // NEW STATES FOR AVATAR UPLOAD
+  
   const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [avatarUploadError, setAvatarUploadError] = useState(null);
-  const avatarFileInputRef = useRef(null); // Ref for the hidden file input
+  const avatarFileInputRef = useRef(null); 
 
   const navigate = useNavigate();
 
-  // Function to fetch user profile data
+  
   const fetchUserProfile = async () => {
     try {
       setLoading(true);
       setError(null);
-      const response = await API.get('/users/profile'); // Backend endpoint for user profile
+      const response = await API.get('/users/profile'); 
       setUserProfile(response.data);
-      // Initialize editable states with fetched data
       setEditedName(response.data.name);
       setEditedInterests(response.data.interests || []);
       setEditedSkills(response.data.skills || []);
     } catch (err) {
       console.error('Error fetching user profile:', err);
       setError('Failed to fetch profile data. Please try again.');
-      // If unauthorized, redirect to login
       if (err.response && err.response.status === 401) {
         navigate('/login');
       }
@@ -62,7 +59,7 @@ const Profile = () => {
     fetchUserProfile();
   }, []);
 
-  // Handlers for form input changes
+  
   const handleInterestChange = (e, index) => {
     const newInterests = [...editedInterests];
     newInterests[index] = e.target.value;
@@ -83,15 +80,15 @@ const Profile = () => {
       Swal.fire({ icon: 'error', title: 'Error', text: 'Skill name cannot be empty.' });
       return;
     }
-    // Check for duplicate skill names (case-insensitive)
+    
     if (editedSkills.some(s => s.name.toLowerCase() === newSkillName.trim().toLowerCase())) {
         Swal.fire({ icon: 'error', title: 'Error', text: 'This skill already exists.' });
         return;
     }
     const newSkill = { name: newSkillName.trim(), level: newSkillLevel, verified: false };
     setEditedSkills([...editedSkills, newSkill]);
-    setNewSkillName(''); // Clear input
-    setNewSkillLevel('beginner'); // Reset level
+    setNewSkillName(''); 
+    setNewSkillLevel('beginner'); 
   };
 
   const handleRemoveSkill = (indexToRemove) => {
@@ -105,25 +102,24 @@ const Profile = () => {
   };
 
   const handleUpdateProfile = async (e) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
     try {
-      setLoading(true); // Set loading for profile update, not just avatar
+      setLoading(true); 
       setError(null);
 
-      // Construct the payload for the PUT request (NO AVATAR HERE)
+      
       const payload = {
         name: editedName,
-        interests: editedInterests.filter(i => i.trim() !== ''), // Filter out empty interest inputs
-        skills: editedSkills.filter(s => s.name.trim() !== '') // Filter out skills with empty names
+        interests: editedInterests.filter(i => i.trim() !== ''), 
+        skills: editedSkills.filter(s => s.name.trim() !== '') 
       };
 
       const response = await API.put('/users/profile', payload);
-      setUserProfile(response.data); // Update the displayed profile with the response
-      // Also update localStorage user data for consistency in sidebar
+      setUserProfile(response.data);
       const updatedUserInStorage = { ...JSON.parse(localStorage.getItem('user')), ...response.data };
       localStorage.setItem('user', JSON.stringify(updatedUserInStorage));
 
-      setIsEditing(false); // Exit editing mode
+      setIsEditing(false); 
       Swal.fire({ icon: 'success', title: 'Success', text: 'Profile updated successfully!' });
     } catch (err) {
       console.error('Error updating user profile:', err);
@@ -134,31 +130,30 @@ const Profile = () => {
     }
   };
 
-  // NEW FUNCTION: Handle Avatar File Change
+  
   const handleAvatarFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Basic validation: Check file type and size
       if (!file.type.startsWith('image/')) {
         setAvatarUploadError('Only image files are allowed.');
         setSelectedAvatarFile(null);
-        if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; // Clear file input
+        if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; 
         return;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5 MB limit
+      if (file.size > 5 * 1024 * 1024) { 
         setAvatarUploadError('File size exceeds 5MB limit.');
         setSelectedAvatarFile(null);
-        if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; // Clear file input
+        if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; 
         return;
       }
-      setAvatarUploadError(null); // Clear previous errors
+      setAvatarUploadError(null); 
       setSelectedAvatarFile(file);
     } else {
       setSelectedAvatarFile(null);
     }
   };
 
-  // NEW FUNCTION: Handle Avatar Upload
+  
   const handleAvatarUpload = async () => {
     if (!selectedAvatarFile) {
       setAvatarUploadError('Please select an image to upload.');
@@ -169,26 +164,24 @@ const Profile = () => {
     setAvatarUploadError(null);
 
     const formData = new FormData();
-    formData.append('avatar', selectedAvatarFile); // 'avatar' must match the field name in multer.single('avatar')
+    formData.append('avatar', selectedAvatarFile); 
 
     try {
       const response = await API.post('/users/profile/avatar', formData, {
         headers: {
-          'Content-Type': 'multipart/form-data', // Crucial for file uploads
+          'Content-Type': 'multipart/form-data',
         },
       });
       console.log('Avatar upload response:', response.data);
-      // Update userProfile state with new avatar URL
       setUserProfile(prevProfile => ({
         ...prevProfile,
-        avatar: response.data.avatar // Backend sends back the new avatar URL
+        avatar: response.data.avatar 
       }));
-      // Also update localStorage user data for sidebar consistency
       const updatedUserInStorage = { ...JSON.parse(localStorage.getItem('user')), avatar: response.data.avatar };
       localStorage.setItem('user', JSON.stringify(updatedUserInStorage));
 
-      setSelectedAvatarFile(null); // Clear selected file
-      if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; // Clear file input
+      setSelectedAvatarFile(null); 
+      if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; 
       Swal.fire({ icon: 'success', title: 'Success', text: 'Avatar updated successfully!' });
     } catch (err) {
       console.error('Error uploading avatar:', err);
@@ -200,17 +193,17 @@ const Profile = () => {
   };
 
 
-  // NEW FUNCTION: Handle getting AI suggestions
+  
   const handleGetSuggestions = async () => {
     setSuggestionsLoading(true);
     setSuggestionsError(null);
-    setAiSuggestions(null); // Clear previous suggestions
+    setAiSuggestions(null); 
 
     try {
-      // Use the *current* userProfile's skills and interests, as they are up-to-date after fetch
+      
       const payload = {
-        skills: userProfile?.skills || [], // Use optional chaining
-        interests: userProfile?.interests || [] // Use optional chaining
+        skills: userProfile?.skills || [],
+        interests: userProfile?.interests || [] 
       };
 
       const response = await API.post('/ai/get-suggestions', payload);
@@ -236,9 +229,9 @@ const Profile = () => {
     return <div style={styles.container}>No user profile found.</div>;
   }
 
-  // Determine which avatar URL to display (selected file preview > current profile avatar > default)
+  
   const displayAvatarUrl = selectedAvatarFile
-    ? URL.createObjectURL(selectedAvatarFile) // Show preview of newly selected file
+    ? URL.createObjectURL(selectedAvatarFile) 
     : userProfile.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png';
 
 
@@ -247,16 +240,15 @@ const Profile = () => {
       <h2 style={styles.heading}>User Profile</h2>
 
       {!isEditing ? (
-        // Display Mode
+        
         <div style={styles.profileDisplay}>
           <img src={userProfile.avatar} alt="User Avatar" style={styles.avatarDisplay} />
           <p><strong>Name:</strong> {userProfile.name}</p>
-          <p><strong>Email:</strong> {userProfile.email}</p> {/* Email is not editable by design */}
+          <p><strong>Email:</strong> {userProfile.email}</p> 
           <p><strong>Role:</strong> {userProfile.role}</p>
 
           <div style={styles.section}>
             <h3>Skills</h3>
-            {/* Check userProfile.skills for null/undefined before accessing length */}
             {(userProfile.skills && userProfile.skills.length > 0) ? (
               <ul style={styles.list}>
                 {userProfile.skills.map((skill, index) => (
@@ -272,7 +264,6 @@ const Profile = () => {
 
           <div style={styles.section}>
             <h3>Interests</h3>
-            {/* Check userProfile.interests for null/undefined before accessing length */}
             {(userProfile.interests && userProfile.interests.length > 0) ? (
               <ul style={styles.list}>
                 {userProfile.interests.map((interest, index) => (
@@ -285,12 +276,11 @@ const Profile = () => {
           </div>
           <button onClick={() => setIsEditing(true)} style={styles.editButton}>Edit Profile</button>
 
-          {/* NEW SECTION: AI Suggestions */}
+          
           <div style={styles.section}>
             <h3>AI-Powered Suggestions</h3>
             <button
               onClick={handleGetSuggestions}
-              // Use optional chaining with nullish coalescing to safely check length
               style={{
                 ...styles.getSuggestionsButton,
                 ...(suggestionsLoading || ((userProfile?.skills?.length || 0) === 0 && (userProfile?.interests?.length || 0) === 0) ? styles.buttonDisabled : {})
@@ -305,7 +295,6 @@ const Profile = () => {
             {aiSuggestions && (
               <div style={styles.suggestionsOutput}>
                 <pre style={styles.preformattedText}>{aiSuggestions}</pre>
-                {/* You might want to parse this into a more structured display later */}
               </div>
             )}
             {!aiSuggestions && !suggestionsLoading && !suggestionsError && (
@@ -314,7 +303,6 @@ const Profile = () => {
           </div>
         </div>
       ) : (
-        // Edit Mode
         <form onSubmit={handleUpdateProfile} style={styles.profileForm}>
           <div style={styles.formGroup}>
             <label style={styles.label}>Name:</label>
@@ -327,7 +315,7 @@ const Profile = () => {
             />
           </div>
 
-          {/* NEW AVATAR UPLOAD SECTION */}
+          
           <div style={styles.avatarUploadSection}>
             <label style={styles.label}>Current/New Avatar:</label>
             <div style={styles.avatarPreviewContainer}>
@@ -340,12 +328,12 @@ const Profile = () => {
               accept="image/*"
               ref={avatarFileInputRef}
               onChange={handleAvatarFileChange}
-              style={{ display: 'none' }} // Hide default input
+              style={{ display: 'none' }} 
               disabled={uploadingAvatar}
             />
             <button
               type="button"
-              onClick={() => avatarFileInputRef.current.click()} // Trigger hidden input
+              onClick={() => avatarFileInputRef.current.click()} 
               style={{ ...styles.uploadButton, ...styles.selectFileButton, ...(uploadingAvatar ? styles.buttonDisabled : {}) }}
               disabled={uploadingAvatar}
             >
@@ -448,9 +436,9 @@ const Profile = () => {
               });
               if (!result.isConfirmed) return;
               setIsEditing(false);
-              setSelectedAvatarFile(null); // Clear selected file when canceling
-              setAvatarUploadError(null); // Clear avatar upload errors
-              fetchUserProfile(); // Re-fetch original profile to reset state
+              setSelectedAvatarFile(null); 
+              setAvatarUploadError(null); 
+              fetchUserProfile(); 
             }} style={styles.cancelButton}>Cancel</button>
           </div>
         </form>
@@ -685,10 +673,10 @@ const styles = {
     color: '#ef4444',
     textAlign: 'center',
   },
-  // NEW STYLES FOR AI SUGGESTIONS
+  
   getSuggestionsButton: {
     padding: '10px 20px',
-    backgroundColor: '#0ea5e9', // Blue color
+    backgroundColor: '#0ea5e9', 
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -696,7 +684,7 @@ const styles = {
     fontSize: '16px',
     marginTop: '10px',
     transition: 'background-color 0.2s ease',
-    // Removed &:hover - handle conditionally if needed
+    
   },
   suggestionsOutput: {
     backgroundColor: '#f8fafc',
@@ -704,11 +692,11 @@ const styles = {
     borderRadius: '8px',
     border: '1px solid #e2e8f0',
     marginTop: '15px',
-    whiteSpace: 'pre-wrap', // Ensures text wraps but preserves formatting
+    whiteSpace: 'pre-wrap', 
     wordBreak: 'break-word',
   },
   preformattedText: {
-    fontFamily: 'inherit', // Use page's font
+    fontFamily: 'inherit', 
     margin: 0,
     fontSize: '15px',
     lineHeight: '1.6',
@@ -719,11 +707,11 @@ const styles = {
     marginTop: '10px',
     textAlign: 'center',
   },
-  // NEW STYLES FOR AVATAR UPLOAD SECTION
+  
   avatarUploadSection: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center', // Center content horizontally
+    alignItems: 'center', 
     gap: '10px',
     marginBottom: '20px',
     padding: '15px',
@@ -745,7 +733,7 @@ const styles = {
   },
   uploadButton: {
     padding: '10px 15px',
-    backgroundColor: '#6366f1', // Indigo color for upload actions
+    backgroundColor: '#6366f1', 
     color: 'white',
     border: 'none',
     borderRadius: '8px',
@@ -753,19 +741,16 @@ const styles = {
     fontSize: '14px',
     fontWeight: 'bold',
     transition: 'background-color 0.2s ease',
-    // Removed &:hover - handle conditionally if needed
+    
   },
   selectFileButton: {
-    backgroundColor: '#3b82f6', // Blue for selecting file
-    // Removed &:hover - handle conditionally if needed
+    backgroundColor: '#3b82f6', 
   },
-  // Generic disabled style applied conditionally
+  
   buttonDisabled: {
     opacity: 0.7,
     cursor: 'not-allowed',
-    backgroundColor: '#a78bfa', // Lighter indigo when disabled (specific to uploadButton)
-    // For getSuggestionsButton, it will take the color from getSuggestionsButton and opacity/cursor from here.
-    // If you need distinct disabled colors for different buttons, you'd apply them separately.
+    backgroundColor: '#a78bfa', 
   }
 };
 

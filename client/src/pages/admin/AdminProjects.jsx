@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API from '../../api/axios'; // Ensure your axios instance is correctly imported
-
+import API from '../../api/axios'; 
 const AdminProjects = () => {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -52,7 +51,6 @@ const AdminProjects = () => {
       setActionLoading(true);
       let response;
       if (action === 'delete') {
-        // Use DELETE for deleting the project as per RESTful design
         response = await API.delete(`/admin/projects/${projectId}`);
       } else {
         setError(`Invalid project action: ${action}`);
@@ -60,19 +58,16 @@ const AdminProjects = () => {
         return;
       }
 
-      // Optional: Display a success message based on server response
-      // For example, using a toast notification library instead of alert:
-      // toast.success(response.data.message);
+      
       console.log(response.data.message);
 
 
-      fetchProjects(); // Re-fetch projects to update the UI
+      fetchProjects(); 
       if (selectedProject?._id === projectId) {
         setSelectedProject(null);
         setShowModal(false);
       }
     } catch (err) {
-      // Improved error handling to show server-provided messages
       const errorMessage = err.response?.data?.error || err.response?.data?.message || `Failed to ${action} project. Please try again.`;
       setError(errorMessage);
       console.error(`Failed to ${action} project:`, err);
@@ -446,13 +441,13 @@ const AdminProjects = () => {
                     <button
                       onClick={() => openProjectDetails(project)}
                       style={{
-                        padding: '6px 12px', // Increased padding
+                        padding: '6px 12px', 
                         backgroundColor: '#3b82f6',
                         color: 'white',
                         border: 'none',
-                        borderRadius: '6px', // More rounded
+                        borderRadius: '6px',
                         cursor: 'pointer',
-                        fontSize: '12px', // Slightly larger font
+                        fontSize: '12px', 
                         fontWeight: '500',
                         transition: 'background-color 0.2s'
                       }}
@@ -496,14 +491,14 @@ const AdminProjects = () => {
             transition: 'background-color 0.2s'
           }}
           onMouseOver={(e) => {
-            if (!actionLoading) { // Added actionLoading check here too
+            if (!actionLoading) { 
               if (currentPage !== 1) {
                 e.target.style.backgroundColor = '#2563eb';
               }
             }
           }}
           onMouseOut={(e) => {
-            if (!actionLoading) { // Added actionLoading check here too
+            if (!actionLoading) { 
               if (currentPage !== 1) {
                 e.target.style.backgroundColor = '#3b82f6';
               }
@@ -535,14 +530,14 @@ const AdminProjects = () => {
             transition: 'background-color 0.2s'
           }}
           onMouseOver={(e) => {
-            if (!actionLoading) { // Added actionLoading check here too
+            if (!actionLoading) { 
               if (currentPage !== totalPages) {
                 e.target.style.backgroundColor = '#2563eb';
               }
             }
           }}
           onMouseOut={(e) => {
-            if (!actionLoading) { // Added actionLoading check here too
+            if (!actionLoading) { 
               if (currentPage !== totalPages) {
                 e.target.style.backgroundColor = '#3b82f6';
               }

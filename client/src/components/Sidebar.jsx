@@ -1,7 +1,6 @@
-// src/components/Sidebar.jsx
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import API from '../api/axios'; // Make sure this path is correct
+import API from '../api/axios'; 
 import Swal from 'sweetalert2';
 
 const Sidebar = ({ isAdmin }) => {
@@ -14,14 +13,12 @@ const Sidebar = ({ isAdmin }) => {
   const [errorUser, setErrorUser] = useState(null);
 
   const fetchUserData = async () => {
-    // Only fetch for regular users or if you explicitly want admin profile data here
     if (!isAdmin) {
         try {
             setLoadingUser(true);
             setErrorUser(null);
             const response = await API.get('/users/profile');
             if (response.data) {
-                // Use the full name if available, fallback to username or 'Guest'
                 setUserName(response.data.name || response.data.username || 'Guest');
                 setUserAvatar(response.data.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png');
             }
@@ -31,13 +28,12 @@ const Sidebar = ({ isAdmin }) => {
             setUserName('Guest');
             if (err.response && err.response.status === 401) {
                 localStorage.clear();
-                navigate('/login'); // Redirect to login on token expiration/invalid
+                navigate('/login'); 
             }
         } finally {
             setLoadingUser(false);
         }
     } else {
-      // For admin sidebar, set default values or specific admin data
       setLoadingUser(false);
       setUserName('Admin User');
       setUserAvatar('https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png');
@@ -46,7 +42,7 @@ const Sidebar = ({ isAdmin }) => {
 
   useEffect(() => {
     fetchUserData();
-  }, [location.pathname, isAdmin]); // Re-fetch on route change or isAdmin prop change
+  }, [location.pathname, isAdmin]); 
 
   const handleLogout = async () => {
     const result = await Swal.fire({
@@ -60,14 +56,14 @@ const Sidebar = ({ isAdmin }) => {
     });
     if (!result.isConfirmed) return;
     localStorage.clear();
-    navigate('/'); // Navigate to the root login page
+    navigate('/'); 
   };
 
   const renderNavLinks = () => {
     if (isAdmin) {
       return (
         <>
-          <NavLink to="/admin" style={styles.link}>📊 Overview</NavLink> {/* Changed to index route */}
+          <NavLink to="/admin" style={styles.link}>📊 Overview</NavLink> 
           <NavLink to="/admin/users" style={styles.link}>👥 User Management</NavLink>
           <NavLink to="/admin/projects" style={styles.link}>📁 Project Oversight</NavLink>
           <NavLink to="/admin/messages" style={styles.link}>📬 Message Monitoring</NavLink>
@@ -79,7 +75,6 @@ const Sidebar = ({ isAdmin }) => {
         <NavLink to="/dashboard/projects" style={styles.link}>📁 Projects</NavLink>
         <NavLink to="/dashboard/messages" style={styles.link}>💬 Messages</NavLink>
         <NavLink to="/dashboard/collaborators" style={styles.link}>👥 Collaborators</NavLink>
-        {/* Corrected path for Conversations */}
         <NavLink to="/dashboard/conversations" style={styles.link}>🗣️ Conversations</NavLink>
         <NavLink to="/dashboard/profile" style={styles.link}>👤 Profile</NavLink>
       </>

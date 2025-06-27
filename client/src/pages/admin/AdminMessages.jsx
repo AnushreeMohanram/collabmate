@@ -52,7 +52,6 @@ const AdminMessages = () => {
       } else if (action === 'delete') {
         await API.delete(`/admin/messages/${messageId}`);
       } else {
-        // fallback for other actions if any
         await API.post(`/admin/messages/${messageId}/${action}`);
       }
       fetchMessages();
@@ -92,9 +91,9 @@ const AdminMessages = () => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      marginLeft: '250px', // Added marginLeft
-      flexGrow: 1, // Added flexGrow
-      backgroundColor: '#f8fafc' // Consistent background
+      marginLeft: '250px', 
+      flexGrow: 1, 
+      backgroundColor: '#f8fafc' 
     }}>
       <div style={{fontSize: '24px', marginBottom: '20px', color: '#1e293b'}}>Loading messages...</div>
       <div style={{color: '#64748b'}}>Please wait while we fetch the data</div>
@@ -110,9 +109,9 @@ const AdminMessages = () => {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      marginLeft: '250px', // Added marginLeft
-      flexGrow: 1, // Added flexGrow
-      backgroundColor: '#f8fafc' // Consistent background
+      marginLeft: '250px', 
+      flexGrow: 1, 
+      backgroundColor: '#f8fafc' 
     }}>
       <div style={{fontSize: '24px', marginBottom: '20px', color: '#ef4444'}}>Error</div>
       <div style={{color: '#991b1b', marginBottom: '20px'}}>{error}</div>
@@ -138,42 +137,41 @@ const AdminMessages = () => {
   );
 
   return (
-    // This is the main container for the content area, next to the sidebar
     <div style={{
-      padding: '20px', // Adjusted padding from 24px to 20px for consistency with projects
-      marginLeft: '250px', // Key change: Push content to the right to clear sidebar
-      marginRight: '20px', // Add some margin on the right for symmetry
-      flexGrow: 1, // Allows this div to take up remaining space
+      padding: '20px', 
+      marginLeft: '250px', 
+      marginRight: '20px', 
+      flexGrow: 1, 
       backgroundColor: '#f8fafc',
       minHeight: '100vh',
-      boxSizing: 'border-box' // Include padding in the element's total width and height
+      boxSizing: 'border-box' 
     }}>
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: '20px', // Adjusted from 32px to 20px
-        padding: '10px 0' // Adjusted padding from '0 16px' to '10px 0'
+        marginBottom: '20px', 
+        padding: '10px 0' 
       }}>
         <div>
           <h2 style={{
             margin: 0,
-            fontSize: '24px', // Adjusted from 28px to 24px
+            fontSize: '24px', 
             color: '#1e293b',
             fontWeight: '600'
           }}>Messages Management</h2>
           <p style={{
-            margin: '5px 0 0', // Adjusted from '8px 0 0' to '5px 0 0'
+            margin: '5px 0 0', 
             color: '#64748b',
-            fontSize: '13px' // Adjusted from 14px to 13px
+            fontSize: '13px'
           }}>Monitor and manage all messages</p>
         </div>
         <div style={{
           display: 'flex',
-          gap: '10px', // Adjusted from 12px to 10px
+          gap: '10px', 
           backgroundColor: 'white',
-          padding: '10px', // Adjusted from 12px to 10px
-          borderRadius: '8px', // Adjusted from 12px to 8px
+          padding: '10px', 
+          borderRadius: '8px', 
           boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
         }}>
           <input
@@ -182,11 +180,11 @@ const AdminMessages = () => {
             value={searchTerm}
             onChange={handleSearch}
             style={{
-              padding: '8px 12px', // Adjusted from 10px 16px to 8px 12px
-              borderRadius: '6px', // Adjusted from 8px to 6px
+              padding: '8px 12px', 
+              borderRadius: '6px', 
               border: '1px solid #e2e8f0',
-              width: '200px', // Adjusted from 240px to 200px
-              fontSize: '13px', // Adjusted from 14px to 13px
+              width: '200px', 
+              fontSize: '13px', 
               outline: 'none',
               transition: 'border-color 0.2s'
             }}
@@ -197,10 +195,10 @@ const AdminMessages = () => {
             value={filterStatus}
             onChange={(e) => handleFilterChange('status', e.target.value)}
             style={{
-              padding: '8px 12px', // Adjusted from 10px 16px to 8px 12px
-              borderRadius: '6px', // Adjusted from 8px to 6px
+              padding: '8px 12px', 
+              borderRadius: '6px', 
               border: '1px solid #e2e8f0',
-              fontSize: '13px', // Adjusted from 14px to 13px
+              fontSize: '13px', 
               outline: 'none',
               cursor: 'pointer',
               transition: 'border-color 0.2s'
@@ -217,10 +215,10 @@ const AdminMessages = () => {
             value={sortBy}
             onChange={(e) => handleFilterChange('sort', e.target.value)}
             style={{
-              padding: '8px 12px', // Adjusted from 10px 16px to 8px 12px
-              borderRadius: '6px', // Adjusted from 8px to 6px
+              padding: '8px 12px',
+              borderRadius: '6px', 
               border: '1px solid #e2e8f0',
-              fontSize: '13px', // Adjusted from 14px to 13px
+              fontSize: '13px', 
               outline: 'none',
               cursor: 'pointer',
               transition: 'border-color 0.2s'
@@ -238,8 +236,8 @@ const AdminMessages = () => {
 
       <div style={{
         backgroundColor: 'white',
-        borderRadius: '8px', // Adjusted from 16px to 8px
-        boxShadow: '0 1px 3px rgba(0,0,0,0.05)', // Adjusted shadow
+        borderRadius: '8px', 
+        boxShadow: '0 1px 3px rgba(0,0,0,0.05)', 
         overflow: 'hidden'
       }}>
         <table style={{
@@ -249,41 +247,41 @@ const AdminMessages = () => {
           <thead>
             <tr style={{
               backgroundColor: '#f8fafc',
-              borderBottom: '1px solid #e2e8f0' // Adjusted from 2px to 1px
+              borderBottom: '1px solid #e2e8f0'
             }}>
               <th style={{
-                padding: '10px 16px', // Adjusted from 16px
+                padding: '10px 16px', 
                 textAlign: 'left',
                 color: '#64748b',
-                fontSize: '13px', // Adjusted from 14px
+                fontSize: '13px', 
                 fontWeight: '500'
               }}>Message</th>
               <th style={{
-                padding: '10px 16px', // Adjusted from 16px
+                padding: '10px 16px', 
                 textAlign: 'left',
                 color: '#64748b',
-                fontSize: '13px', // Adjusted from 14px
+                fontSize: '13px', 
                 fontWeight: '500'
               }}>Sender</th>
               <th style={{
-                padding: '10px 16px', // Adjusted from 16px
+                padding: '10px 16px', 
                 textAlign: 'left',
                 color: '#64748b',
-                fontSize: '13px', // Adjusted from 14px
+                fontSize: '13px', 
                 fontWeight: '500'
               }}>Status</th>
               <th style={{
-                padding: '10px 16px', // Adjusted from 16px
+                padding: '10px 16px', 
                 textAlign: 'left',
                 color: '#64748b',
-                fontSize: '13px', // Adjusted from 14px
+                fontSize: '13px', 
                 fontWeight: '500'
               }}>Created</th>
               <th style={{
-                padding: '10px 16px', // Adjusted from 16px
+                padding: '10px 16px', 
                 textAlign: 'left',
                 color: '#64748b',
-                fontSize: '13px', // Adjusted from 14px
+                fontSize: '13px', 
                 fontWeight: '500'
               }}>Actions</th>
             </tr>
@@ -297,36 +295,36 @@ const AdminMessages = () => {
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#f8fafc'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'white'}
               >
-                <td style={{padding: '8px 16px'}}> {/* Adjusted from 16px */}
+                <td style={{padding: '8px 16px'}}> 
                   <div style={{
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '3px' // Adjusted from 4px
+                    gap: '3px' 
                   }}>
                     <div style={{
                       fontWeight: '500',
                       color: '#1e293b',
-                      fontSize: '13px' // Adjusted from 14px
+                      fontSize: '13px' 
                     }}>{message.subject || 'No Subject'}</div>
                     <div style={{
-                      fontSize: '11px', // Adjusted from 12px
+                      fontSize: '11px', 
                       color: '#64748b',
-                      maxWidth: '300px', // Kept this for overflow control
+                      maxWidth: '300px',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
                       whiteSpace: 'nowrap'
                     }}>{message.content}</div>
                   </div>
                 </td>
-                <td style={{padding: '8px 16px'}}> {/* Adjusted from 16px */}
+                <td style={{padding: '8px 16px'}}> 
                   <div style={{
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '6px' // Adjusted from 8px
+                    gap: '6px' 
                   }}>
                     <div style={{
-                      width: '24px', // Adjusted from 32px
-                      height: '24px', // Adjusted from 32px
+                      width: '24px', 
+                      height: '24px', 
                       borderRadius: '50%',
                       backgroundColor: '#e2e8f0',
                       display: 'flex',
@@ -334,7 +332,7 @@ const AdminMessages = () => {
                       justifyContent: 'center',
                       color: '#64748b',
                       fontWeight: '600',
-                      fontSize: '12px' // Adjusted from 14px
+                      fontSize: '12px' 
                     }}>
                       {message.sender?.name ? message.sender.name.charAt(0).toUpperCase() : '?'}
                     </div>
@@ -342,46 +340,46 @@ const AdminMessages = () => {
                       <div style={{
                         fontWeight: '500',
                         color: '#1e293b',
-                        fontSize: '13px' // Adjusted from 14px
+                        fontSize: '13px' 
                       }}>{message.sender?.name || 'Unknown'}</div>
                       <div style={{
-                        fontSize: '10px', // Adjusted from 12px
+                        fontSize: '10px', 
                         color: '#64748b'
                       }}>{message.sender?.email || 'No email'}</div>
                     </div>
                   </div>
                 </td>
-                <td style={{padding: '8px 16px'}}> {/* Adjusted from 16px */}
+                <td style={{padding: '8px 16px'}}> 
                   <span style={{
-                    padding: '4px 8px', // Adjusted from 6px 12px
-                    borderRadius: '4px', // Adjusted from 6px
+                    padding: '4px 8px', 
+                    borderRadius: '4px', 
                     backgroundColor: message.status === 'active' ? '#dcfce7' : 
                              message.status === 'flagged' ? '#fef3c7' : '#fee2e2',
                     color: message.status === 'active' ? '#166534' : 
                           message.status === 'flagged' ? '#92400e' : '#991b1b',
-                    fontSize: '11px', // Adjusted from 12px
+                    fontSize: '11px', 
                     fontWeight: '500'
                   }}>
                     {message.status || 'Unknown'}
                   </span>
                 </td>
                 <td style={{
-                  padding: '8px 16px', // Adjusted from 16px
+                  padding: '8px 16px', 
                   color: '#64748b',
-                  fontSize: '12px' // Adjusted from 14px
+                  fontSize: '12px'
                 }}>{new Date(message.createdAt).toLocaleString()}</td>
-                <td style={{padding: '8px 16px'}}> {/* Adjusted from 16px */}
+                <td style={{padding: '8px 16px'}}> 
                   <div style={{display: 'flex', gap: '8px'}}>
                     <button
                       onClick={() => openMessageDetails(message)}
                       style={{
-                        padding: '6px 12px', // Adjusted padding
-                        backgroundColor: '#3b82f6', // Consistent blue with projects page
+                        padding: '6px 12px', 
+                        backgroundColor: '#3b82f6', 
                         color: 'white',
                         border: 'none',
                         borderRadius: '6px',
                         cursor: 'pointer',
-                        fontSize: '12px', // Consistent font size
+                        fontSize: '12px', 
                         fontWeight: '500',
                         transition: 'background-color 0.2s'
                       }}
@@ -395,13 +393,13 @@ const AdminMessages = () => {
                         onClick={() => handleMessageAction(message._id, 'flag')}
                         disabled={actionLoading}
                         style={{
-                          padding: '6px 12px', // Adjusted padding
-                          backgroundColor: '#f97316', // Consistent orange with projects page
+                          padding: '6px 12px', 
+                          backgroundColor: '#f97316', 
                           color: 'white',
                           border: 'none',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontSize: '12px', // Consistent font size
+                          fontSize: '12px', 
                           fontWeight: '500',
                           transition: 'background-color 0.2s',
                           opacity: actionLoading ? '0.7' : '1'
@@ -425,13 +423,13 @@ const AdminMessages = () => {
                         onClick={() => handleMessageAction(message._id, 'delete')}
                         disabled={actionLoading}
                         style={{
-                          padding: '6px 12px', // Adjusted padding
-                          backgroundColor: '#ef4444', // Consistent red
+                          padding: '6px 12px', 
+                          backgroundColor: '#ef4444', 
                           color: 'white',
                           border: 'none',
                           borderRadius: '6px',
                           cursor: 'pointer',
-                          fontSize: '12px', // Consistent font size
+                          fontSize: '12px',
                           fontWeight: '500',
                           transition: 'background-color 0.2s',
                           opacity: actionLoading ? '0.7' : '1'
@@ -459,28 +457,28 @@ const AdminMessages = () => {
       </div>
 
       <div style={{
-        marginTop: '15px', // Adjusted from 24px to 15px
+        marginTop: '15px', 
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
-        gap: '10px', // Adjusted from 16px to 10px
-        padding: '10px', // Adjusted from 16px to 10px
+        gap: '10px', 
+        padding: '10px', 
         backgroundColor: 'white',
-        borderRadius: '8px', // Adjusted from 12px to 8px
+        borderRadius: '8px', 
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
       }}>
         <button
           onClick={()=>setCurrentPage(p=>Math.max(p-1,1))}
           disabled={currentPage===1}
           style={{
-            padding: '6px 10px', // Adjusted from 8px 16px to 6px 10px
-            backgroundColor: '#3b82f6', // Consistent blue
+            padding: '6px 10px', 
+            backgroundColor: '#3b82f6', 
             color: 'white',
             border: 'none',
-            borderRadius: '6px', // Adjusted from 8px to 6px
+            borderRadius: '6px', 
             cursor: currentPage===1 ? 'not-allowed' : 'pointer',
             opacity: currentPage===1 ? '0.5' : '1',
-            fontSize: '12px', // Adjusted from 14px to 12px
+            fontSize: '12px', 
             fontWeight: '500',
             transition: 'background-color 0.2s'
           }}
@@ -498,9 +496,9 @@ const AdminMessages = () => {
           Previous
         </button>
         <span style={{
-          padding: '6px 10px', // Adjusted from 8px 16px to 6px 10px
+          padding: '6px 10px', 
           color: '#64748b',
-          fontSize: '12px' // Adjusted from 14px to 12px
+          fontSize: '12px' 
         }}>
           Page {currentPage} of {totalPages}
         </span>
@@ -508,14 +506,14 @@ const AdminMessages = () => {
           onClick={()=>setCurrentPage(p=>Math.min(p+1,totalPages))}
           disabled={currentPage===totalPages}
           style={{
-            padding: '6px 10px', // Adjusted from 8px 16px to 6px 10px
-            backgroundColor: '#3b82f6', // Consistent blue
+            padding: '6px 10px', 
+            backgroundColor: '#3b82f6', 
             color: 'white',
             border: 'none',
-            borderRadius: '6px', // Adjusted from 8px to 6px
+            borderRadius: '6px', 
             cursor: currentPage===totalPages ? 'not-allowed' : 'pointer',
             opacity: currentPage===totalPages ? '0.5' : '1',
-            fontSize: '12px', // Adjusted from 14px to 12px
+            fontSize: '12px',
             fontWeight: '500',
             transition: 'background-color 0.2s'
           }}
@@ -549,25 +547,25 @@ const AdminMessages = () => {
         }}>
           <div style={{
             backgroundColor: 'white',
-            padding: '20px', // Adjusted from 32px to 20px
-            borderRadius: '8px', // Adjusted from 16px to 8px
+            padding: '20px',
+            borderRadius: '8px',
             width: '90%',
-            maxWidth: '500px', // Adjusted from 600px to 500px
-            maxHeight: '80vh', // Adjusted from 90vh to 80vh
+            maxWidth: '500px', 
+            maxHeight: '80vh', 
             overflow: 'auto',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)' // Adjusted shadow
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)' 
           }}>
             <div style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginBottom: '15px', // Adjusted from 24px to 15px
-              paddingBottom: '10px', // Adjusted from 16px to 10px
+              marginBottom: '15px', 
+              paddingBottom: '10px', 
               borderBottom: '1px solid #e2e8f0'
             }}>
               <h3 style={{
                 margin: 0,
-                fontSize: '18px', // Adjusted from 20px to 18px
+                fontSize: '18px', 
                 color: '#1e293b',
                 fontWeight: '600'
               }}>Message Details</h3>
@@ -576,10 +574,10 @@ const AdminMessages = () => {
                 style={{
                   backgroundColor: 'transparent',
                   border: 'none',
-                  fontSize: '20px', // Adjusted from 24px to 20px
+                  fontSize: '20px', 
                   cursor: 'pointer',
                   color: '#64748b',
-                  padding: '2px', // Adjusted from 4px
+                  padding: '2px', 
                   transition: 'color 0.2s'
                 }}
                 onMouseOver={(e) => e.target.style.color = '#1e293b'}
@@ -590,36 +588,36 @@ const AdminMessages = () => {
             </div>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: '1fr', // Changed to 1 column for better mobile view in modal
-              gap: '15px' // Adjusted from 24px to 15px
+              gridTemplateColumns: '1fr', 
+              gap: '15px' 
             }}>
-              <div style={{gridColumn: 'auto'}}> {/* Removed 1 / -1 for single column grid */}
+              <div style={{gridColumn: 'auto'}}> 
                 <div style={{
                   fontWeight: '500',
                   color: '#64748b',
-                  marginBottom: '5px', // Adjusted from 8px
-                  fontSize: '13px' // Adjusted from 14px
+                  marginBottom: '5px', 
+                  fontSize: '13px' 
                 }}>Subject</div>
                 <div style={{
                   color: '#1e293b',
-                  fontSize: '15px', // Adjusted from 18px
+                  fontSize: '15px', 
                   fontWeight: '500'
                 }}>{selectedMessage.subject || 'No Subject'}</div>
               </div>
-              <div style={{gridColumn: 'auto'}}> {/* Removed 1 / -1 for single column grid */}
+              <div style={{gridColumn: 'auto'}}> 
                 <div style={{
                   fontWeight: '500',
                   color: '#64748b',
-                  marginBottom: '5px', // Adjusted from 8px
-                  fontSize: '13px' // Adjusted from 14px
+                  marginBottom: '5px', 
+                  fontSize: '13px' 
                 }}>Content</div>
                 <div style={{
                   color: '#1e293b',
-                  fontSize: '14px', // Adjusted from 16px
-                  lineHeight: '1.4', // Adjusted from 1.5
-                  padding: '10px', // Adjusted from 16px
+                  fontSize: '14px', 
+                  lineHeight: '1.4', 
+                  padding: '10px', 
                   backgroundColor: '#f8fafc',
-                  borderRadius: '6px', // Adjusted from 8px
+                  borderRadius: '6px', 
                   whiteSpace: 'pre-wrap'
                 }}>{selectedMessage.content}</div>
               </div>
@@ -627,20 +625,20 @@ const AdminMessages = () => {
                 <div style={{
                   fontWeight: '500',
                   color: '#64748b',
-                  marginBottom: '5px', // Adjusted from 8px
-                  fontSize: '13px' // Adjusted from 14px
+                  marginBottom: '5px', 
+                  fontSize: '13px' 
                 }}>Sender</div>
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '8px', // Adjusted from 12px
-                  padding: '8px', // Adjusted from 12px
+                  gap: '8px', 
+                  padding: '8px', 
                   backgroundColor: '#f8fafc',
-                  borderRadius: '6px' // Adjusted from 8px
+                  borderRadius: '6px' 
                 }}>
                   <div style={{
-                    width: '28px', // Adjusted from 40px
-                    height: '28px', // Adjusted from 40px
+                    width: '28px', 
+                    height: '28px', 
                     borderRadius: '50%',
                     backgroundColor: '#e2e8f0',
                     display: 'flex',
@@ -648,7 +646,7 @@ const AdminMessages = () => {
                     justifyContent: 'center',
                     color: '#64748b',
                     fontWeight: '600',
-                    fontSize: '12px' // Adjusted from 16px
+                    fontSize: '12px' 
                   }}>
                     {selectedMessage.sender?.name ? selectedMessage.sender.name.charAt(0).toUpperCase() : '?'}
                   </div>
@@ -656,10 +654,10 @@ const AdminMessages = () => {
                     <div style={{
                       fontWeight: '500',
                       color: '#1e293b',
-                      fontSize: '13px' // Adjusted from 14px
+                      fontSize: '13px' 
                     }}>{selectedMessage.sender?.name || 'Unknown'}</div>
                     <div style={{
-                      fontSize: '11px', // Adjusted from 12px
+                      fontSize: '11px',
                       color: '#64748b'
                     }}>{selectedMessage.sender?.email || 'No email'}</div>
                   </div>
@@ -669,33 +667,33 @@ const AdminMessages = () => {
                 <div style={{
                   fontWeight: '500',
                   color: '#64748b',
-                  marginBottom: '5px', // Adjusted from 8px
-                  fontSize: '13px' // Adjusted from 14px
+                  marginBottom: '5px', 
+                  fontSize: '13px' 
                 }}>Status</div>
                 <div style={{
                   color: '#1e293b',
-                  fontSize: '14px' // Adjusted from 16px
+                  fontSize: '14px' 
                 }}>{selectedMessage.status || 'Unknown'}</div>
               </div>
               <div>
                 <div style={{
                   fontWeight: '500',
                   color: '#64748b',
-                  marginBottom: '5px', // Adjusted from 8px
-                  fontSize: '13px' // Adjusted from 14px
+                  marginBottom: '5px', 
+                  fontSize: '13px' 
                 }}>Created At</div>
                 <div style={{
                   color: '#1e293b',
-                  fontSize: '14px' // Adjusted from 16px
+                  fontSize: '14px' 
                 }}>{new Date(selectedMessage.createdAt).toLocaleString()}</div>
               </div>
             </div>
             <div style={{
               display: 'flex',
-              gap: '10px', // Adjusted from 12px
+              gap: '10px',
               justifyContent: 'flex-end',
-              marginTop: '20px', // Adjusted from 32px
-              paddingTop: '15px', // Adjusted from 24px
+              marginTop: '20px', 
+              paddingTop: '15px', 
               borderTop: '1px solid #e2e8f0'
             }}>
               {selectedMessage.status === 'active' && (
@@ -703,13 +701,13 @@ const AdminMessages = () => {
                   onClick={() => handleMessageAction(selectedMessage._id, 'flag')}
                   disabled={actionLoading}
                   style={{
-                    padding: '8px 15px', // Adjusted from 10px 20px
-                    backgroundColor: '#f97316', // Consistent orange
+                    padding: '8px 15px', 
+                    backgroundColor: '#f97316', 
                     color: 'white',
                     border: 'none',
-                    borderRadius: '6px', // Adjusted from 8px
+                    borderRadius: '6px', 
                     cursor: 'pointer',
-                    fontSize: '12px', // Adjusted from 14px
+                    fontSize: '12px', 
                     fontWeight: '500',
                     transition: 'background-color 0.2s',
                     opacity: actionLoading ? '0.7' : '1'
@@ -733,13 +731,13 @@ const AdminMessages = () => {
                   onClick={() => handleMessageAction(selectedMessage._id, 'delete')}
                   disabled={actionLoading}
                   style={{
-                    padding: '8px 15px', // Adjusted from 10px 20px
-                    backgroundColor: '#ef4444', // Consistent red
+                    padding: '8px 15px', 
+                    backgroundColor: '#ef4444',
                     color: 'white',
                     border: 'none',
-                    borderRadius: '6px', // Adjusted from 8px
+                    borderRadius: '6px', 
                     cursor: 'pointer',
-                    fontSize: '12px', // Adjusted from 14px
+                    fontSize: '12px', 
                     fontWeight: '500',
                     transition: 'background-color 0.2s',
                     opacity: actionLoading ? '0.7' : '1'
@@ -761,13 +759,13 @@ const AdminMessages = () => {
               <button
                 onClick={() => setShowModal(false)}
                 style={{
-                  padding: '8px 15px', // Adjusted from 10px 20px
+                  padding: '8px 15px', 
                   backgroundColor: '#e2e8f0',
                   color: '#1e293b',
                   border: 'none',
-                  borderRadius: '6px', // Adjusted from 8px
+                  borderRadius: '6px', 
                   cursor: 'pointer',
-                  fontSize: '12px', // Adjusted from 14px
+                  fontSize: '12px', 
                   fontWeight: '500',
                   transition: 'background-color 0.2s'
                 }}

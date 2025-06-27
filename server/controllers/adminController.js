@@ -4,21 +4,16 @@ const User = require('../models/User');
 const Project = require('../models/Project');
 const Message = require('../models/Message');
 const Collaboration = require('../models/Collaboration');
-const bcrypt = require('bcryptjs'); // For password hashing if you need reset logic here
-
-// Helper function to get start of day for aggregation queries (important for consistent date ranges)
+const bcrypt = require('bcryptjs'); 
 const getStartOfDay = (date) => {
   const d = new Date(date);
-  d.setUTCHours(0, 0, 0, 0); // Normalize to UTC start of day to avoid timezone issues
+  d.setUTCHours(0, 0, 0, 0);
   return d;
 };
 
-// @desc    Get overall dashboard statistics
-// @route   GET /api/admin/stats
-// @access  Private (Admin only)
 exports.getAdminStats = async (req, res) => {
   try {
-    const range = parseInt(req.query.range) || 7; // Default to 7 days
+    const range = parseInt(req.query.range) || 7; 
     const dateFilter = new Date();
     dateFilter.setDate(dateFilter.getDate() - range);
 
@@ -26,17 +21,17 @@ exports.getAdminStats = async (req, res) => {
       totalUsers,
       activeUsers,
       totalProjects,
-      totalCollaborations, // Assuming this is needed for overall stats
+      totalCollaborations, 
       newUsersThisPeriod,
       activeProjectsCount,
-      recentActivity // This is for recent messages/activity, not a chart
+      recentActivity 
     ] = await Promise.all([
       User.countDocuments(),
       User.countDocuments({ active: true }),
       Project.countDocuments(),
-      Collaboration.countDocuments(), // Total collaborations count
-      User.countDocuments({ createdAt: { $gte: dateFilter } }), // New users in period
-      Project.countDocuments({ status: 'active' }), // Active projects count
+      Collaboration.countDocuments(), 
+      User.countDocuments({ createdAt: { $gte: dateFilter } }), 
+      Project.countDocuments({ status: 'active' }),
       Message.find()
         .sort({ createdAt: -1 })
         .limit(10)
@@ -45,7 +40,7 @@ exports.getAdminStats = async (req, res) => {
         .lean()
     ]);
 
-    // Calculate percentages
+    
     const activeUsersPercentage = totalUsers > 0 ? (activeUsers / totalUsers) * 100 : 0;
     const newUsersPercentage = totalUsers > 0 ? (newUsersThisPeriod / totalUsers) * 100 : 0;
     const activeProjectsPercentage = totalProjects > 0 ? (activeProjectsCount / totalProjects) * 100 : 0;
@@ -64,9 +59,8 @@ exports.getAdminStats = async (req, res) => {
       projectStats: {
         activePercentage: activeProjectsPercentage
       },
-      // Ensure recentActivity mapping is correct based on your Message model and desired display
       recentActivity: recentActivity.map(activity => ({
-        type: 'message', // Assuming all activities here are messages
+        type: 'message',
         description: `${activity.sender?.name || 'Unknown'} sent a message in ${activity.project?.title || 'a project'}`,
         timestamp: activity.createdAt
       }))
@@ -77,9 +71,6 @@ exports.getAdminStats = async (req, res) => {
   }
 };
 
-// @desc    Get paginated and filterable list of all users
-// @route   GET /api/admin/users
-// @access  Private (Admin only)
 exports.getAllUsers = async (req, res) => {
   try {
     const { search, status, role, page = 1, limit = 10 } = req.query;
@@ -121,9 +112,6 @@ exports.getAllUsers = async (req, res) => {
   }
 };
 
-// @desc    Get paginated and filterable list of all projects
-// @route   GET /api/admin/projects
-// @access  Private (Admin only)
 exports.getAllProjects = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 10 } = req.query;
@@ -159,9 +147,6 @@ exports.getAllProjects = async (req, res) => {
   }
 };
 
-// @desc    Get paginated and filterable list of all collaborations
-// @route   GET /api/admin/collaborations
-// @access  Private (Admin only)
 exports.getAllCollaborations = async (req, res) => {
   try {
     const { search, status, page = 1, limit = 10 } = req.query;
@@ -170,11 +155,6 @@ exports.getAllCollaborations = async (req, res) => {
     if (status) {
       query.status = status;
     }
-
-    // For searching on populated fields, you typically need to use aggregation or perform multiple queries.
-    // For simplicity, the provided route did not implement search on populated fields,
-    // so it's omitted here to match the user's provided route behavior.
-    // If you need it, you would use Mongoose aggregation for text search across populated fields.
 
     const collaborations = await Collaboration.find(query)
       .populate('project', 'title')
@@ -198,9 +178,6 @@ exports.getAllCollaborations = async (req, res) => {
   }
 };
 
-// @desc    Activate or Deactivate a user account
-// @route   POST /api/admin/users/:userId/:action
-// @access  Private (Admin only)
 exports.handleUserAction = async (req, res) => {
   try {
     const { userId, action } = req.params;
@@ -233,9 +210,6 @@ exports.handleUserAction = async (req, res) => {
   }
 };
 
-// @desc    Delete a user account permanently
-// @route   DELETE /api/admin/users/:userId
-// @access  Private (Admin only)
 exports.deleteUser = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -254,12 +228,6 @@ exports.deleteUser = async (req, res) => {
 
     await User.findByIdAndDelete(userId);
 
-    // OPTIONAL: Cascading deletes (uncomment if you want to delete related data)
-    // await Message.deleteMany({ sender: userId });
-    // await Collaboration.deleteMany({ $or: [{ receiver: userId }, { initiator: userId }] }); // Adjust if initiator is on Collaboration schema
-    // await Project.updateMany({ owner: userId }, { $set: { owner: null } }); // Or delete projects owned by this user
-    // await Project.updateMany({ collaborators: userId }, { $pull: { collaborators: userId } });
-
     res.json({ message: 'User account deleted successfully.' });
 
   } catch (err) {
@@ -269,9 +237,6 @@ exports.deleteUser = async (req, res) => {
 };
 
 
-// @desc    Mark a message as deleted
-// @route   DELETE /api/admin/messages/:messageId
-// @access  Private (Admin only)
 exports.deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
@@ -287,9 +252,6 @@ exports.deleteMessage = async (req, res) => {
   }
 };
 
-// @desc    Delete a project permanently
-// @route   DELETE /api/admin/projects/:id
-// @access  Private (Admin only)
 exports.deleteProject = async (req, res) => {
   try {
     const { id } = req.params;
@@ -299,20 +261,12 @@ exports.deleteProject = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
 
-    // OPTIONAL: Cascading deletes (uncomment if you want to delete related data)
-    // await Collaboration.deleteMany({ project: id });
-    // await Message.deleteMany({ project: id });
-
     res.json({ message: 'Project deleted successfully' });
   } catch (err) {
     console.error(`Error deleting project ${req.params.id}:`, err);
     res.status(500).json({ error: 'Failed to delete project' });
   }
 };
-
-// @desc    Update a collaboration request's status (accept/reject)
-// @route   PUT /api/admin/collaborations/:id/:action
-// @access  Private (Admin only)
 exports.updateCollaborationStatus = async (req, res) => {
   try {
     const { id, action } = req.params;
@@ -325,12 +279,6 @@ exports.updateCollaborationStatus = async (req, res) => {
     switch (action) {
       case 'accept':
         collaboration.status = 'accepted';
-        // You might want to add the receiver to the project's collaborators here
-        // const project = await Project.findById(collaboration.project);
-        // if (project && !project.collaborators.includes(collaboration.receiver)) {
-        //   project.collaborators.push(collaboration.receiver);
-        //   await project.save();
-        // }
         break;
       case 'reject':
         collaboration.status = 'rejected';
@@ -347,9 +295,6 @@ exports.updateCollaborationStatus = async (req, res) => {
   }
 };
 
-// @desc    Delete a collaboration request permanently
-// @route   DELETE /api/admin/collaborations/:id
-// @access  Private (Admin only)
 exports.deleteCollaboration = async (req, res) => {
   try {
     const { id } = req.params;
@@ -365,9 +310,6 @@ exports.deleteCollaboration = async (req, res) => {
   }
 };
 
-// @desc    Get detailed project analytics with filters and sorting
-// @route   GET /api/admin/project-analytics
-// @access  Private (Admin only)
 exports.getProjectAnalytics = async (req, res) => {
   try {
     const { page = 1, limit = 10, search, status, category, sort } = req.query;
@@ -428,9 +370,6 @@ exports.getProjectAnalytics = async (req, res) => {
   }
 };
 
-// @desc    Get detailed user analytics with filters and sorting
-// @route   GET /api/admin/user-analytics
-// @access  Private (Admin only)
 exports.getUserAnalytics = async (req, res) => {
   try {
     const { page = 1, limit = 10, search, role, status, sort } = req.query;
@@ -489,10 +428,6 @@ exports.getUserAnalytics = async (req, res) => {
     res.status(500).json({ message: 'Error fetching user analytics' });
   }
 };
-
-// @desc    Get detailed message analytics with filters and sorting
-// @route   GET /api/admin/message-analytics
-// @access  Private (Admin only)
 exports.getMessageAnalytics = async (req, res) => {
   try {
     const { page = 1, limit = 10, search, status, sort } = req.query;
@@ -515,10 +450,6 @@ exports.getMessageAnalytics = async (req, res) => {
         sortOption = { createdAt: 1 };
         break;
       case 'sender':
-        // Sorting by populated field requires aggregation for efficiency,
-        // or a simpler sort by sender ID if that's sufficient.
-        // For direct sorting on sender's name/email, you'd need aggregation.
-        // Keeping it as direct sender ID sort for simplicity as per original route definition.
         sortOption = { 'sender': 1 };
         break;
       default:
@@ -546,10 +477,6 @@ exports.getMessageAnalytics = async (req, res) => {
     res.status(500).json({ message: 'Error fetching message analytics' });
   }
 };
-
-// @desc    Update a message's status (flag, unflag, archive)
-// @route   PUT /api/admin/messages/:messageId/:action
-// @access  Private (Admin only)
 exports.updateMessageStatus = async (req, res) => {
   try {
     const { messageId, action } = req.params;
@@ -580,13 +507,6 @@ exports.updateMessageStatus = async (req, res) => {
     res.status(500).json({ message: 'Error updating message status.' });
   }
 };
-
-
-// --- NEW CHART-SPECIFIC ENDPOINTS ---
-
-// @desc    Get user registration trend data (last 30 days)
-// @route   GET /api/admin/charts/user-registration-trend
-// @access  Private (Admin only)
 exports.getUserRegistrationTrend = async (req, res) => {
   try {
     const today = getStartOfDay(new Date());
@@ -610,8 +530,6 @@ exports.getUserRegistrationTrend = async (req, res) => {
         $sort: { _id: 1 }
       }
     ]);
-
-    // Fill in missing dates with 0 count for a continuous chart
     const dateMap = new Map();
     trend.forEach(item => dateMap.set(item._id, item.count));
 
@@ -633,9 +551,6 @@ exports.getUserRegistrationTrend = async (req, res) => {
   }
 };
 
-// @desc    Get project creation trend data (last 30 days)
-// @route   GET /api/admin/charts/project-creation-trend
-// @access  Private (Admin only)
 exports.getProjectCreationTrend = async (req, res) => {
   try {
     const today = getStartOfDay(new Date());
@@ -660,7 +575,7 @@ exports.getProjectCreationTrend = async (req, res) => {
       }
     ]);
 
-    // Fill in missing dates with 0 count for a continuous chart
+    
     const dateMap = new Map();
     trend.forEach(item => dateMap.set(item._id, item.count));
 
@@ -681,29 +596,25 @@ exports.getProjectCreationTrend = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
-
-// @desc    Get user role distribution data
-// @route   GET /api/admin/charts/user-role-distribution
-// @access  Private (Admin only)
 exports.getUserRoleDistribution = async (req, res) => {
   try {
     const roleDistribution = await User.aggregate([
       {
         $group: {
-          _id: '$role', // Group by the 'role' field
-          count: { $sum: 1 } // Count documents in each group
+          _id: '$role', 
+          count: { $sum: 1 } 
         }
       },
       {
         $project: {
-          _id: 0, // Exclude _id field
-          role: '$_id', // Rename _id to role
+          _id: 0, 
+          role: '$_id', 
           count: 1
         }
       }
     ]);
 
-    // Format for easier consumption by frontend: { "admin": 5, "user": 20 }
+    
     const formattedDistribution = roleDistribution.reduce((acc, item) => {
       acc[item.role] = item.count;
       return acc;

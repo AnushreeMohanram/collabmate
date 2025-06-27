@@ -1,6 +1,5 @@
-// client/src/components/CreateConversationModal.jsx
 import React, { useState, useEffect } from 'react';
-import API from '../api/axios'; // Adjust path as needed
+import API from '../api/axios';
 import Swal from 'sweetalert2';
 
 const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
@@ -14,15 +13,15 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
 
-    // Debounce search term for user lookup
+    
     useEffect(() => {
         const delaySearch = setTimeout(() => {
-            if (searchTerm.length > 2) { // Only search if more than 2 characters
+            if (searchTerm.length > 2) { 
                 searchUsers();
             } else {
-                setSearchResults([]); // Clear results if search term is too short
+                setSearchResults([]); 
             }
-        }, 500); // 500ms debounce
+        }, 500); 
 
         return () => clearTimeout(delaySearch);
     }, [searchTerm]);
@@ -31,7 +30,7 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
         setLoadingSearch(true);
         setError(null);
         try {
-            // Search for users, exclude current user
+            
             const res = await API.get(`/users?search=${searchTerm}`);
             const filteredResults = res.data.filter(user => user._id !== currentUser?._id);
             setSearchResults(filteredResults);
@@ -44,11 +43,10 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
     };
 
     const handleSelectParticipant = (user) => {
-        // Prevent adding duplicate participants and current user
         if (!selectedParticipants.some(p => p._id === user._id) && user._id !== currentUser?._id) {
             setSelectedParticipants([...selectedParticipants, user]);
-            setSearchTerm(''); // Clear search term after selection
-            setSearchResults([]); // Clear search results
+            setSearchTerm(''); 
+            setSearchResults([]); 
         }
     };
 
@@ -70,7 +68,7 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
                 participantIds: participantIds,
                 subject: subject.trim() || undefined,
             });
-            // Show SweetAlert2 success popup
+            
             await Swal.fire({
                 icon: 'success',
                 title: 'Conversation Created!',
@@ -79,9 +77,8 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
                 background: '#f0f9ff',
                 color: '#1e293b',
             });
-            onCreateSuccess(res.data); // Pass the new conversation back to the parent
-            onClose(); // Close the modal
-            // Reset state
+            onCreateSuccess(res.data); 
+            onClose();
             setSearchTerm('');
             setSearchResults([]);
             setSelectedParticipants([]);
@@ -139,7 +136,7 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
                 <div style={modalStyles.selectedList}>
                 {selectedParticipants.map(user => (
                 <span key={user._id} style={modalStyles.selectedTag}>
-                {user.name || user.email || user.username} {/* Changed here: Prioritize name, then email, then username */}
+                {user.name || user.email || user.username}
                 <button onClick={() => handleRemoveParticipant(user._id)} style={modalStyles.removeTagButton}>x</button>
                 </span>
                 ))}
@@ -278,7 +275,7 @@ const modalStyles = {
         cursor: 'pointer',
         fontWeight: 'bold',
         marginLeft: '5px',
-        lineHeight: 1, // Fix vertical alignment
+        lineHeight: 1, 
     },
     buttonGroup: {
         display: 'flex',

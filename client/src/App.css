@@ -36,3 +36,37 @@
     transform: rotate(360deg);
   }
 }
+
+/* Fix SweetAlert2 action button alignment */
+.swal2-actions {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  margin-top: 20px !important;
+  position: static !important;
+}
+
+/* Ensure To-Do List card matches calendar card style */
+.todo-list-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #e0e7ef;
+  padding: 32px;
+  max-height: 540px;
+  overflow-y: auto;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 320px;
+}
+
+.calendar-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px #e0e7ef;
+  padding: 16px;
+  min-width: 400px;
+  max-width: 700px;
+  margin: 0 auto;
+}

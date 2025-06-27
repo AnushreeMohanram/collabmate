@@ -13,8 +13,7 @@ const Register = () => {
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [formError, setFormError] = useState(''); // This will display backend errors or general form errors
-
+  const [formError, setFormError] = useState(''); 
   const navigate = useNavigate();
 
   const validateName = (value) => {
@@ -43,19 +42,19 @@ const Register = () => {
   const handleNameChange = (e) => {
     setName(e.target.value);
     setNameError(validateName(e.target.value));
-    setFormError(''); // Clear form-level error on input change
+    setFormError('');
   };
 
   const handleEmailChange = (e) => {
     setEmail(e.target.value);
     setEmailError(validateEmail(e.target.value));
-    setFormError(''); // Clear form-level error on input change
+    setFormError(''); 
   };
 
   const handlePasswordChange = (e) => {
     setPassword(e.target.value);
     setPasswordError(validatePassword(e.target.value));
-    setFormError(''); // Clear form-level error on input change
+    setFormError(''); 
   };
 
   const isFormValid = () => {
@@ -67,9 +66,7 @@ const Register = () => {
   };
 
   const handleRegister = async () => {
-    setFormError(''); // Clear previous form-level errors before new attempt
-    
-    // Run all validations again before submitting
+    setFormError(''); 
     const nErr = validateName(name);
     const eErr = validateEmail(email);
     const pErr = validatePassword(password);
@@ -79,8 +76,8 @@ const Register = () => {
     setPasswordError(pErr);
 
     if (nErr || eErr || pErr) {
-      // If client-side validation fails, set a generic form error if specific ones aren't enough
-      if (!nErr && !eErr && !pErr) { // Only set if specific errors are clear but form is somehow invalid
+      
+      if (!nErr && !eErr && !pErr) { 
         setFormError('Please fill out all fields correctly.');
       }
       return;
@@ -93,26 +90,23 @@ const Register = () => {
       console.log('Registration response:', res.data);
 
       if (res.data.token) {
-        // Store user data
         localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user)); // Store the full user object
+        localStorage.setItem('user', JSON.stringify(res.data.user)); 
         console.log('User data stored in localStorage');
-        navigate('/dashboard/projects'); // Redirect to dashboard
+        navigate('/dashboard/projects'); 
       } else {
-        // This case should ideally not happen if backend sends token, but good fallback
         throw new Error('Registration successful but no token received.');
       }
     } catch (err) {
       console.error("Registration failed:", err);
-      // More robust error message extraction from Axios error response
       const errorMessage = 
-        err.response?.data?.message || // For "User already exists" or other specific messages
-        err.response?.data?.error ||   // For other errors where backend might use 'error' field
-        "Something went wrong. Please try again later."; // Generic fallback
+        err.response?.data?.message || 
+        err.response?.data?.error ||   
+        "Something went wrong. Please try again later."; 
 
-      setFormError(errorMessage); // Display the extracted error message
+      setFormError(errorMessage);
       
-      // Also log details to console for debugging
+      
       console.error("Full error details for debugging:", {
         message: err.message,
         response: err.response?.data,
@@ -170,58 +164,58 @@ const Register = () => {
     },
     title: {
       fontSize: '32px',
-      fontWeight: '700', // Slightly bolder title
+      fontWeight: '700', 
       marginBottom: '30px',
-      color: '#1e293b', // Darker title color
+      color: '#1e293b', 
       textAlign: 'center',
     },
     label: {
       fontSize: '15px',
-      fontWeight: '600', // Bolder label
+      fontWeight: '600', 
       marginBottom: '5px',
       display: 'block',
-      color: '#334155', // Slightly darker label color
+      color: '#334155', 
     },
     inputWrapper: {
       position: 'relative',
-      marginBottom: '15px', // Increased margin for better spacing
+      marginBottom: '15px', 
     },
     input: {
       width: '100%',
-      padding: '12px 40px 12px 12px', // Right padding for toggle button
-      borderRadius: '8px', // More rounded corners
-      border: '1px solid #cbd5e1', // Lighter border
+      padding: '12px 40px 12px 12px', 
+      borderRadius: '8px', 
+      border: '1px solid #cbd5e1', 
       fontSize: '15px',
       outline: 'none',
       transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
       boxSizing: 'border-box',
       '&:focus': {
-        borderColor: '#4f46e5', // Primary brand color on focus
-        boxShadow: '0 0 0 3px rgba(79, 70, 229, 0.15)', // Soft shadow on focus
+        borderColor: '#4f46e5', 
+        boxShadow: '0 0 0 3px rgba(79, 70, 229, 0.15)', 
       },
     },
     inputError: {
-      borderColor: '#ef4444', // Red border for error
-      boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.15)', // Red shadow for error
+      borderColor: '#ef4444', 
+      boxShadow: '0 0 0 3px rgba(239, 68, 68, 0.15)', 
     },
     toggleButton: {
       position: 'absolute',
-      right: '10px', // Adjusted position
+      right: '10px', 
       top: '50%',
       transform: 'translateY(-50%)',
       background: 'none',
       border: 'none',
       cursor: 'pointer',
       fontSize: '18px',
-      color: '#64748b', // Neutral color for icon
-      padding: '5px', // Added padding for easier click
+      color: '#64748b', 
+      padding: '5px', 
       lineHeight: 1,
     },
     errorText: {
       color: '#ef4444',
       fontSize: '13px',
-      marginTop: '5px', // Adjusted margin
-      marginBottom: '10px', // Adjusted margin
+      marginTop: '5px', 
+      marginBottom: '10px', 
       fontWeight: '500',
     },
     button: {
@@ -246,15 +240,15 @@ const Register = () => {
     },
     footerText: {
       textAlign: 'center',
-      marginTop: '20px', // More margin at top
+      marginTop: '20px', 
       fontSize: '14px',
-      color: '#475569', // Darker text
+      color: '#475569', 
     },
     link: {
-      color: '#4f46e5', // Primary brand color for link
+      color: '#4f46e5', 
       marginLeft: '4px',
       textDecoration: 'none',
-      fontWeight: '600', // Bolder link text
+      fontWeight: '600', 
       '&:hover': {
         textDecoration: 'underline',
       },
@@ -265,30 +259,30 @@ const Register = () => {
       marginBottom: '15px',
       textAlign: 'center',
       padding: '8px',
-      backgroundColor: '#fee2e2', // Light red background for error message
+      backgroundColor: '#fee2e2', 
       borderRadius: '6px',
       border: '1px solid #fca5a5',
     },
     passwordRequirements: {
-      marginTop: '15px', // Increased margin
+      marginTop: '15px',
       fontSize: '12px',
       color: '#475569',
       padding: '10px',
       backgroundColor: '#f8fafc',
-      borderRadius: '8px', // More rounded
+      borderRadius: '8px', 
       border: '1px solid #e2e8f0',
     },
     requirement: {
-      marginBottom: '6px', // Increased margin
+      marginBottom: '6px', 
       display: 'flex',
       alignItems: 'center',
-      gap: '8px', // Increased gap
+      gap: '8px', 
     },
     requirementMet: {
-      color: '#10b981', // Green for met requirements
+      color: '#10b981', 
     },
     requirementUnmet: {
-      color: '#64748b', // Gray for unmet requirements
+      color: '#64748b', 
     },
   };
 

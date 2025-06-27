@@ -3,14 +3,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import API from '../api/axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import AISummaryDisplay from '../components/ai/AISummaryDisplay';
-import CreateConversationModal from '../components/CreateConversationModal'; // Import the new modal component
+import CreateConversationModal from '../components/CreateConversationModal'; 
 import Swal from 'sweetalert2';
 
 const Conversations = () => {
     const { conversationId: urlConversationId } = useParams();
     const navigate = useNavigate();
     const messagesEndRef = useRef(null);
-    const fileInputRef = useRef(null); // Ref for the file input
+    const fileInputRef = useRef(null); 
     const lastMessageIdRef = useRef(null);
 
     const [conversations, setConversations] = useState([]);
@@ -22,40 +22,38 @@ const Conversations = () => {
     const [sendingMessage, setSendingMessage] = useState(false);
     const [error, setError] = useState(null);
 
-    // AI Summary states
+
     const [summary, setSummary] = useState(null);
     const [loadingSummary, setLoadingSummary] = useState(false);
-    const [showSummary, setShowSummary] = useState(false); // Default to false
+    const [showSummary, setShowSummary] = useState(false); 
     const [summaryStale, setSummaryStale] = useState(false);
     const [summaryLastGeneratedAt, setSummaryLastGeneratedAt] = useState(null);
 
-    // New state for modal visibility
+    
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
 
-    // --- Fetch Conversations List ---
+    
     const fetchConversations = async () => {
         try {
             setLoadingConversations(true);
             const res = await API.get('/conversations');
             setConversations(res.data);
 
-            // If a conversation ID is in the URL, try to select and load it
+           
             if (urlConversationId) {
                 const conversationToSelect = res.data.find(conv => conv._id === urlConversationId);
                 if (conversationToSelect) {
                     setSelectedConversation(conversationToSelect);
                 } else {
-                    // If URL ID not found (e.g., user not participant), clear URL
                     navigate('/dashboard/conversations', { replace: true });
                 }
             } else if (res.data.length > 0) {
-                 // If no URL ID and conversations exist, select the most recent one
                  setSelectedConversation(res.data[0]);
                  navigate(`/dashboard/conversations/${res.data[0]._id}`, { replace: true });
             } else {
-                setSelectedConversation(null); // No conversations to select
+                setSelectedConversation(null); 
             }
         } catch (err) {
             console.error('Error fetching conversations:', err);
@@ -72,8 +70,6 @@ const Conversations = () => {
     useEffect(() => {
         fetchConversations();
     }, [urlConversationId, navigate]);
-
-    // --- Fetch Messages for Selected Conversation ---
     useEffect(() => {
         const fetchMessagesForConversation = async () => {
             if (selectedConversation) {
@@ -82,13 +78,10 @@ const Conversations = () => {
                 try {
                     const res = await API.get(`/conversations/${selectedConversation._id}`);
                     setMessages(res.data.messages);
-                    // Set summary states from fetched data
                     setSummary(res.data.conversation.aiSummary || null);
                     setSummaryLastGeneratedAt(res.data.conversation.aiSummaryGeneratedAt || null);
                     const needsUpdate = res.data.conversation.aiSummaryNeedsUpdate || false;
                     setSummaryStale(needsUpdate);
-                    
-                    // --- MODIFIED: Show summary if it exists and is NOT stale ---
                     setShowSummary(!!res.data.conversation.aiSummary && !needsUpdate); 
 
                 } catch (err) {
@@ -107,18 +100,16 @@ const Conversations = () => {
         fetchMessagesForConversation();
     }, [selectedConversation]);
 
-    // --- Scroll to bottom of messages ---
     useEffect(() => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
         }
     }, [messages]);
 
-    // Add a useEffect to show a toast when a new message is received
+   
     useEffect(() => {
         if (messages.length > 0) {
             const lastMsg = messages[messages.length - 1];
-            // Only show notification if the last message is not from the current user and is new
             if (lastMsg && lastMsg._id !== lastMessageIdRef.current && lastMsg.sender && lastMsg.sender._id !== currentUser?._id) {
                 lastMessageIdRef.current = lastMsg._id;
                 Swal.fire({
@@ -138,13 +129,13 @@ const Conversations = () => {
         }
     }, [messages, currentUser]);
 
-    // --- Handlers ---
+    
 
     const handleConversationSelect = (conversation) => {
         setSelectedConversation(conversation);
         navigate(`/dashboard/conversations/${conversation._id}`);
         setNewMessageContent('');
-        // --- REMOVED: setShowSummary(false) from here. Let useEffect handle initial state based on fetched data. ---
+       
     };
 
     const handleSendMessage = async (e) => {
@@ -174,7 +165,7 @@ const Conversations = () => {
             setMessages(prevMessages => [...prevMessages, messageResponse.data]); 
             setNewMessageContent('');
     
-            // Update conversation list and summary staleness
+            
             setConversations(prevConvs => prevConvs.map(conv =>
                 conv._id === selectedConversation._id
                     ? { ...conv, updatedAt: new Date().toISOString(), aiSummaryNeedsUpdate: true, aiSummary: null }
@@ -188,7 +179,7 @@ const Conversations = () => {
                 aiSummary: null
             }));
             setSummary(null);
-            setShowSummary(false); // Ensure summary is hidden after sending a new message (as it's stale)
+            setShowSummary(false);
             setSummaryStale(true);
     
         } catch (err) {
@@ -206,26 +197,26 @@ const Conversations = () => {
     const handleSummarizeConversation = async () => {
         if (!selectedConversation) return;
 
-        // If summary is currently shown and not stale, hide it (toggle behavior)
+        
         if (showSummary && !summaryStale) {
             setShowSummary(false);
             return;
         }
-        // If summary is hidden, or stale, try to generate/show it
+        
         setLoadingSummary(true);
-        setSummary(null); // Clear previous summary while generating
-        setError(null); // Clear potential previous errors
+        setSummary(null); 
+        setError(null); 
         try {
             const response = await API.post('/ai/chat/summarize', {
                 conversationId: selectedConversation._id
             });
             const generatedSummary = response.data.summary;
             setSummary(generatedSummary);
-            setShowSummary(true); // Show the summary once generated
+            setShowSummary(true); 
             setSummaryStale(false);
             setSummaryLastGeneratedAt(new Date());
 
-            // Update conversation state in local list and selectedConversation
+            
             setConversations(prevConvs => prevConvs.map(conv =>
                 conv._id === selectedConversation._id
                     ? { ...conv, aiSummary: generatedSummary, aiSummaryGeneratedAt: new Date(), aiSummaryNeedsUpdate: false }
@@ -240,29 +231,28 @@ const Conversations = () => {
 
         } catch (err) {
             console.error('Error summarizing conversation:', err);
-            setError('Failed to generate summary. Please try again later.'); // Set error state
+            setError('Failed to generate summary. Please try again later.'); 
             setSummary(null);
-            setShowSummary(false); // Hide summary if generation fails
+            setShowSummary(false); 
         } finally {
             setLoadingSummary(false);
         }
     };
 
     const handleNewConversationCreated = (newConversation) => {
-        // Add the new conversation to the list and select it
         setConversations(prevConvs => [newConversation, ...prevConvs].sort((a, b) => new Date(b.updatedAt) - new Date(a.updatedAt)));
         setSelectedConversation(newConversation);
-        navigate(`/dashboard/conversations/${newConversation._id}`); // Navigate to the new conversation
-        setShowSummary(false); // Ensure summary is hidden when a new conversation is created
+        navigate(`/dashboard/conversations/${newConversation._id}`); 
+        setShowSummary(false); 
     };
 
-    // --- UI Rendering ---
+    
     return (
         <div style={{
             ...styles.container,
             minHeight: '100vh',
         }}>
-            {/* Left Sidebar: Conversation List */}
+           
             <div style={{
                 ...styles.conversationListContainer,
             }}>
@@ -286,10 +276,9 @@ const Conversations = () => {
                             >
                                 <h4 style={styles.conversationSubject}>{conv.subject || 'No Subject'}</h4>
                                 <p style={styles.conversationParticipants}>
-                                    {/* This maps participant names for the conversation list */}
                                     {conv.participants
                                         .filter(p => p._id !== currentUser?._id)
-                                        .map(p => p.name) // Use p.name directly here as well
+                                        .map(p => p.name) 
                                         .join(', ') || 'You'}
                                 </p>
                                 <p style={styles.conversationDate}>
@@ -300,14 +289,14 @@ const Conversations = () => {
                     </div>
                 )}
                 <button
-                    onClick={() => setIsCreateModalOpen(true)} // Open the modal
+                    onClick={() => setIsCreateModalOpen(true)} 
                     style={styles.newConversationButton}
                 >
                     + New Conversation
                 </button>
             </div>
 
-            {/* Right Panel: Message Thread & Input */}
+            
             <div style={{
                 ...styles.messageThreadContainer,
             }}>
@@ -323,42 +312,40 @@ const Conversations = () => {
                         </h2>
                         <p style={styles.threadParticipants}>
                             Participants: {selectedConversation.participants
-                                .map(p => p.name) // Use p.name directly here as well
+                                .map(p => p.name) 
                                 .join(', ')}
                         </p>
 
-                        {/* AI Summary Section */}
+                        
                         <div style={styles.summarySection}>
-                            {messages.length > 1 && ( // Show summarize button if there are enough messages
+                            {messages.length > 1 && ( 
                                 <button
                                     onClick={handleSummarizeConversation}
                                     disabled={loadingSummary}
                                     style={{
                                         ...styles.summarizeButton,
-                                        // Apply orange style if summary is stale
                                         ...(summaryStale ? styles.staleSummarizeButton : {})
                                     }}
                                 >
                                     {loadingSummary ? 'Generating Summary...' : (
-                                        // Change button text based on showSummary state
                                         showSummary && !summaryStale ? 'Hide Summary' : (summaryStale ? 'Regenerate Summary' : 'Summarize Conversation')
                                     )}
                                 </button>
                             )}
-                            {/* Only show AISummaryDisplay if showSummary is true and there's summary content */}
+                            
                             {showSummary && (summary || loadingSummary) && (
                                 <AISummaryDisplay
                                     summary={summary}
-                                    onClose={() => setShowSummary(false)} // This closes the summary when clicked
+                                    onClose={() => setShowSummary(false)} 
                                     isStale={summaryStale}
                                     lastGeneratedAt={summaryLastGeneratedAt}
                                 />
                             )}
                             {loadingSummary && <p style={styles.loadingText}>AI is thinking...</p>}
-                            {error && <p style={styles.errorText}>{error}</p>} {/* Display general error */}
+                            {error && <p style={styles.errorText}>{error}</p>} 
                         </div>
 
-                        {/* Message List */}
+                        
                         <div style={{
                             ...styles.messagesList,
                         }}>
@@ -377,10 +364,9 @@ const Conversations = () => {
                                         }}
                                     >
                                         <p style={styles.messageSender}>
-                                            {/* Corrected: Access msg.sender.name directly */}
+                                            
                                             {msg.sender?.name || 'Unknown'}
                                         </p>
-                                        {/* Display message content only if present */}
                                         {msg.content && msg.content.trim() !== '' && <p style={styles.messageContent}>{msg.content}</p>}
 
                                         <p style={styles.messageTimestamp}>
@@ -419,7 +405,7 @@ const Conversations = () => {
                 )}
             </div>
 
-            {/* Create Conversation Modal */}
+            
             <CreateConversationModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}

@@ -1,19 +1,15 @@
-// server/controllers/conversationController.js
-const Conversation = require('../models/Conversation'); // Ensure this path is correct
-const Message = require('../models/Message');         // Ensure this path is correct
-const User = require('../models/User');               // Ensure this path is correct
+const Conversation = require('../models/Conversation'); 
+const Message = require('../models/Message');         
+const User = require('../models/User');               
 
-// @desc    Get all conversations for the authenticated user
-// @route   GET /api/conversations
-// @access  Private
 const getConversations = async (req, res) => {
     try {
-        // Find conversations where the current user is a participant
+        
         const conversations = await Conversation.find({
             participants: req.user._id
         })
-        .populate('participants', 'name email avatar') // Populate conversation participants
-        .sort({ updatedAt: -1 }); // Sort by most recent activity
+        .populate('participants', 'name email avatar') 
+        .sort({ updatedAt: -1 }); 
 
         res.json(conversations);
     } catch (error) {
@@ -22,26 +18,23 @@ const getConversations = async (req, res) => {
     }
 };
 
-// @desc    Get a single conversation by ID with its messages
-// @route   GET /api/conversations/:id
-// @access  Private
 const getConversationById = async (req, res) => {
     try {
         const conversation = await Conversation.findOne({
             _id: req.params.id,
-            participants: req.user._id // Ensure user is a participant
+            participants: req.user._id 
         })
-        .populate('participants', 'name email avatar') // Populate conversation participants
+        .populate('participants', 'name email avatar') 
         .populate({
             path: 'messages',
-            populate: [ // Use an array for multiple nested populates
+            populate: [ 
                 {
                     path: 'sender',
-                    select: 'name email avatar' // Select only necessary fields for sender
+                    select: 'name email avatar' 
                 },
                 {
-                    path: 'recipient', // Also populate recipient
-                    select: 'name email avatar' // Select only necessary fields for recipient
+                    path: 'recipient', 
+                    select: 'name email avatar' 
                 }
             ]
         });
@@ -50,7 +43,7 @@ const getConversationById = async (req, res) => {
             return res.status(404).json({ message: 'Conversation not found or you are not a participant' });
         }
 
-        // Return messages separately for easier client handling if needed, or just conversation
+        
         res.json({
             conversation: conversation,
             messages: conversation.messages
@@ -61,17 +54,14 @@ const getConversationById = async (req, res) => {
     }
 };
 
-// @desc    Create a new conversation
-// @route   POST /api/conversations
-// @access  Private
+
 const createConversation = async (req, res) => {
     const { participantIds, subject } = req.body;
 
-    // Ensure current user is always a participant
-    // Use Set to automatically handle duplicates and ensure unique IDs
+    
     const allParticipantIds = Array.from(new Set([...participantIds.map(String), req.user._id.toString()]));
 
-    if (allParticipantIds.length < 2) { // A conversation needs at least two distinct participants
+    if (allParticipantIds.length < 2) {
         return res.status(400).json({ message: 'A conversation must have at least two participants.' });
     }
 
@@ -156,10 +146,33 @@ const addParticipantsToConversation = async (req, res) => {
     }
 };
 
+
+const deleteConversation = async (req, res) => {
+    try {
+        const conversation = await Conversation.findById(req.params.id);
+        if (!conversation) {
+            return res.status(404).json({ message: 'Conversation not found' });
+        }
+        // Only allow participants to delete
+        if (!conversation.participants.includes(req.user._id)) {
+            return res.status(403).json({ message: 'Not authorized to delete this conversation' });
+        }
+        // Delete all messages in this conversation
+        await Message.deleteMany({ conversation: conversation._id });
+        // Delete the conversation itself
+        await Conversation.findByIdAndDelete(conversation._id);
+        res.json({ message: 'Conversation and its messages deleted successfully' });
+    } catch (err) {
+        console.error('Error deleting conversation:', err);
+        res.status(500).json({ message: 'Server error deleting conversation' });
+    }
+};
+
 // IMPORTANT: Make sure all functions you want to be available are exported here
 module.exports = {
     getConversations,
     getConversationById,
     createConversation,
-    addParticipantsToConversation
+    addParticipantsToConversation,
+    deleteConversation
 };

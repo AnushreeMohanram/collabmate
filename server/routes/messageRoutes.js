@@ -164,6 +164,7 @@ router.post('/', authMiddleware, async (req, res) => {
         .populate('sender', 'name email avatar'); // Populate name, email, avatar for frontend
 
       console.log('Created conversation message:', populatedMessage);
+
       return res.status(201).json(populatedMessage);
 
     } else {
@@ -190,6 +191,7 @@ router.post('/', authMiddleware, async (req, res) => {
         .populate('mentions', 'name email');
 
       console.log('Created direct message:', populatedMessage);
+
       return res.status(201).json(populatedMessage);
     }
 

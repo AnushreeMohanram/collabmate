@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react'; // Added useCallback
+import React, { useState, useEffect, useCallback } from 'react'; 
 import API from '../../api/axios';
-import { toast } from 'react-toastify'; // Assuming you have react-toastify for notifications
+import { toast } from 'react-toastify'; 
 
 const AdminUsers = () => {
   const [users, setUsers] = useState([]);
@@ -8,7 +8,7 @@ const AdminUsers = () => {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterRole, setFilterRole] = useState('all');
-  const [filterStatus, setFilterStatus] = useState('all'); // This will map to 'active' boolean on backend
+  const [filterStatus, setFilterStatus] = useState('all'); 
   const [sortBy, setSortBy] = useState('newest');
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
@@ -20,8 +20,6 @@ const AdminUsers = () => {
 
   const SIDEBAR_WIDTH = '240px';
   const DEBOUNCE_DELAY = 500;
-
-  // Memoized fetchUsers function to avoid unnecessary re-renders and issues with useEffect dependencies
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
@@ -31,7 +29,6 @@ const AdminUsers = () => {
         limit: 10,
         search: searchTerm,
         role: filterRole,
-        // Ensure 'all' status is not sent to backend, only 'active' or 'inactive'
         status: filterStatus === 'all' ? undefined : filterStatus,
         sort: sortBy
       };
@@ -49,35 +46,31 @@ const AdminUsers = () => {
     } finally {
       setLoading(false);
     }
-  }, [currentPage, filterRole, filterStatus, sortBy, searchTerm]); // Add searchTerm to dependencies
+  }, [currentPage, filterRole, filterStatus, sortBy, searchTerm]); 
 
-  // Main data fetching effect.
-  // Re-fetch when filters or pagination change
   useEffect(() => {
     fetchUsers();
-  }, [fetchUsers]); // fetchUsers is now a dependency because it's wrapped in useCallback
+  }, [fetchUsers]); 
 
-  // Debounce effect for search term
+  
   useEffect(() => {
     const handler = setTimeout(() => {
-      // If the search term changes, reset to page 1 and fetch
-      if (currentPage !== 1 || searchTerm) { // Only fetch if not already on page 1, or if searchTerm has content
+      if (currentPage !== 1 || searchTerm) { 
         setCurrentPage(1);
-        fetchUsers(); // This fetch is triggered by the currentPage change or directly if currentPage is already 1
+        fetchUsers(); 
       }
     }, DEBOUNCE_DELAY);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [searchTerm, fetchUsers]); // Add fetchUsers as a dependency for debounce effect
+  }, [searchTerm, fetchUsers]); 
 
 
-  // --- UPDATED: Function to handle user status changes (activate/deactivate) ---
-  const handleUserStatusChange = async (userId, currentIsActive) => { // Renamed action to currentIsActive for clarity
+  const handleUserStatusChange = async (userId, currentIsActive) => { 
     try {
       setActionLoading(true);
-      const action = currentIsActive ? 'deactivate' : 'activate'; // Determine backend action
+      const action = currentIsActive ? 'deactivate' : 'activate'; 
       const user = users.find(u => u._id === userId);
 
       if (!user) {
@@ -85,9 +78,8 @@ const AdminUsers = () => {
         return;
       }
 
-      // Prevent deactivating the last active admin
+    
       if (action === 'deactivate' && user.role === 'admin') {
-        // Filter `users` state directly to count active admins
         const activeAdminCount = users.filter(u => u.role === 'admin' && u.active === true).length;
         if (activeAdminCount <= 1) {
           toast.error('Cannot deactivate the last active admin user. This would lock the system!');
@@ -99,41 +91,35 @@ const AdminUsers = () => {
       const response = await API.post(`/admin/users/${userId}/${action}`);
       toast.success(response.data.message);
 
-      // --- IMPORTANT: OPTIMISTIC UI UPDATE ---
       setUsers(prevUsers =>
         prevUsers.map(u =>
-          u._id === userId ? { ...u, active: !currentIsActive } : u // Toggle the 'active' status
+          u._id === userId ? { ...u, active: !currentIsActive } : u 
         )
       );
 
-      // Update the selectedUser state if the modal is open
       if (selectedUser?._id === userId) {
-        setSelectedUser(prev => ({ ...prev, active: !currentIsActive })); // Update 'active' field
+        setSelectedUser(prev => ({ ...prev, active: !currentIsActive })); 
       }
 
-      // Re-fetch after a slight delay or if the filter is set to 'all'
-      // This helps with data consistency across pagination/filtering
-      // Alternatively, if you want *immediate* re-filtering on de/activation,
-      // you could call fetchUsers() directly here, but the optimistic update is faster.
-      // fetchUsers(); // This will trigger a full re-fetch after update.
+      
 
     } catch (err) {
       const errorMessage = err.response?.data?.error || err.response?.data?.message || `Failed to ${currentIsActive ? 'deactivate' : 'activate'} user.`;
-      setError(errorMessage); // Set error for overall display
-      toast.error(errorMessage); // Show specific error to user
+      setError(errorMessage); 
+      toast.error(errorMessage); 
       console.error(`Status change error (${currentIsActive ? 'deactivate' : 'activate'}):`, err);
     } finally {
       setActionLoading(false);
     }
   };
-  // --- END UPDATED FUNCTION ---
+  
 
   const handleDeleteUser = async (userId) => {
     try {
       setActionLoading(true);
       const userToDeleteConfirmed = users.find(u => u._id === userId);
 
-      // Prevent deleting the last active admin (similar check as deactivation)
+     
       if (userToDeleteConfirmed && userToDeleteConfirmed.role === 'admin') {
         const activeAdminCount = users.filter(u => u.role === 'admin' && u.active === true).length;
         if (activeAdminCount <= 1) {
@@ -145,9 +131,7 @@ const AdminUsers = () => {
 
       await API.delete(`/admin/users/${userId}`);
       toast.success(`User deleted successfully.`);
-      // Optimistic removal from UI, then re-fetch for consistency
       setUsers(prevUsers => prevUsers.filter(u => u._id !== userId));
-      // Re-evaluate total pages if necessary (simple re-fetch handles this)
       fetchUsers();
 
       if (selectedUser?._id === userId) {
@@ -168,14 +152,13 @@ const AdminUsers = () => {
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
-    // Debounce handles page reset to 1
   };
 
   const handleFilterChange = (type, value) => {
     if (type === 'role') setFilterRole(value);
     if (type === 'status') setFilterStatus(value);
     if (type === 'sort') setSortBy(value);
-    setCurrentPage(1); // Reset page on filter change
+    setCurrentPage(1); 
   };
 
   const openUserDetails = (user) => {
@@ -208,7 +191,7 @@ const AdminUsers = () => {
     minWidth: 'calc(768px - 48px)'
   };
 
-  if (loading && users.length === 0) return ( // Only show full loading screen if no users are loaded yet
+  if (loading && users.length === 0) return ( 
     <div style={{
       ...mainContainerStyle,
       textAlign: 'center',
@@ -334,7 +317,7 @@ const AdminUsers = () => {
             <option value="admin">Admin</option>
           </select>
 
-          {/* Corrected Status Filter Buttons (includes 'active' and 'inactive') */}
+          
           <div style={{
             display: 'flex',
             gap: '8px',
@@ -509,11 +492,10 @@ const AdminUsers = () => {
                   </span>
                 </td>
                 <td style={{ padding: '16px 24px' }}>
-                  {/* --- UPDATED: Use user.active for status display --- */}
                   <span style={{
                     padding: '8px 16px',
                     borderRadius: '8px',
-                    background: user.active ? '#d1fae5' : '#ffe4e6', // Green for active, Red for inactive
+                    background: user.active ? '#d1fae5' : '#ffe4e6', 
                     color: user.active ? '#065f46' : '#9f1239',
                     fontSize: '13px',
                     fontWeight: '600'
@@ -543,14 +525,14 @@ const AdminUsers = () => {
                       View Details
                     </button>
 
-                    {/* --- UPDATED: Status Toggle Button in Table --- */}
-                    {user.active ? ( // Check user.active, not user.status
+                    
+                    {user.active ? ( 
                       <button
-                        onClick={() => handleUserStatusChange(user._id, user.active)} // Pass user.active
+                        onClick={() => handleUserStatusChange(user._id, user.active)} 
                         disabled={actionLoading}
                         style={{
                           padding: '8px 16px',
-                          background: '#f97316', // Orange for deactivate
+                          background: '#f97316', 
                           color: 'white',
                           border: 'none',
                           borderRadius: '8px',
@@ -568,11 +550,11 @@ const AdminUsers = () => {
                       </button>
                     ) : (
                       <button
-                        onClick={() => handleUserStatusChange(user._id, user.active)} // Pass user.active
+                        onClick={() => handleUserStatusChange(user._id, user.active)} 
                         disabled={actionLoading}
                         style={{
                           padding: '8px 16px',
-                          background: '#22c55e', // Green for activate
+                          background: '#22c55e', 
                           color: 'white',
                           border: 'none',
                           borderRadius: '8px',
@@ -589,7 +571,7 @@ const AdminUsers = () => {
                         Activate
                       </button>
                     )}
-                    {/* --- END UPDATED --- */}
+                    
 
                     <button
                       onClick={() => confirmDelete(user)}
@@ -824,9 +806,8 @@ const AdminUsers = () => {
                   marginBottom: '10px',
                   fontSize: '15px'
                 }}>Account Status</div>
-                {/* --- UPDATED: Use selectedUser.active for status display in modal --- */}
                 <div style={{
-                  color: selectedUser.active ? '#166534' : '#991b1b', // Green for active, Red for inactive
+                  color: selectedUser.active ? '#166534' : '#991b1b', 
                   fontSize: '18px',
                   fontWeight: '600'
                 }}>{selectedUser.active ? 'Active' : 'Inactive'}</div>
@@ -866,8 +847,7 @@ const AdminUsers = () => {
               paddingTop: '28px',
               borderTop: '1px solid #e2e8f0'
             }}>
-              {/* --- UPDATED: Status Toggle Button in Modal --- */}
-              {selectedUser.active ? ( // Check selectedUser.active
+              {selectedUser.active ? ( 
                 <button
                   onClick={() => handleUserStatusChange(selectedUser._id, selectedUser.active)} // Pass selectedUser.active
                   disabled={actionLoading}

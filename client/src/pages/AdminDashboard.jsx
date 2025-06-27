@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
-import { Bar, Pie, Line } from 'react-chartjs-2'; // Import chart components
-import { // Import Chart.js essentials
+import { Bar, Pie, Line } from 'react-chartjs-2'; 
+import { 
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
@@ -9,13 +9,13 @@ import { // Import Chart.js essentials
   ArcElement,
   PointElement,
   LineElement,
-  Title, // Added Title for chart titles
+  Title,
   Tooltip,
   Legend,
 } from 'chart.js';
 import Swal from 'sweetalert2';
 
-// Register Chart.js components (important!)
+
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -42,7 +42,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // New states for chart-specific data (if your backend provides separate endpoints)
+  
   const [userRegistrationTrend, setUserRegistrationTrend] = useState([]);
   const [projectCreationTrend, setProjectCreationTrend] = useState([]);
   const [userRoleDistribution, setUserRoleDistribution] = useState({});
@@ -55,16 +55,15 @@ const AdminDashboard = () => {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      // Fetch core dashboard data concurrently
       const [statsRes, usersRes, projectsRes, collabsRes,
-             userRegRes, projCreateRes, userRoleRes] = await Promise.all([ // Added new fetches
+             userRegRes, projCreateRes, userRoleRes] = await Promise.all([ 
         API.get('/admin/stats'),
         API.get('/admin/users'),
         API.get('/admin/projects'),
         API.get('/admin/collaborations'),
-        API.get('/admin/charts/user-registration-trend'), // New endpoint for user trend
-        API.get('/admin/charts/project-creation-trend'), // New endpoint for project trend
-        API.get('/admin/charts/user-role-distribution') // New endpoint for user roles
+        API.get('/admin/charts/user-registration-trend'), 
+        API.get('/admin/charts/project-creation-trend'), 
+        API.get('/admin/charts/user-role-distribution') 
       ]);
 
       setStats(statsRes.data);
@@ -72,7 +71,7 @@ const AdminDashboard = () => {
       setProjects(Array.isArray(projectsRes.data) ? projectsRes.data : []);
       setCollaborations(Array.isArray(collabsRes.data) ? collabsRes.data : []);
 
-      // Set data for charts
+      
       setUserRegistrationTrend(Array.isArray(userRegRes.data) ? userRegRes.data : []);
       setProjectCreationTrend(Array.isArray(projCreateRes.data) ? projCreateRes.data : []);
       setUserRoleDistribution(userRoleRes.data || {});
@@ -115,22 +114,20 @@ const AdminDashboard = () => {
     project.name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // --- Chart Data Preparation (derived from fetched states) ---
-
-  // 1. User Status Pie Chart (using existing 'stats' data)
+  
   const userStatusData = {
     labels: ['Active Users', 'Inactive Users'],
     datasets: [
       {
         data: [stats.activeUsers, stats.totalUsers - stats.activeUsers],
-        backgroundColor: ['#10b981', '#ef4444'], // Green for active, Red for inactive
+        backgroundColor: ['#10b981', '#ef4444'], 
         borderColor: ['#ffffff', '#ffffff'],
         borderWidth: 2,
       },
     ],
   };
 
-  // 2. Project Status Pie Chart (derived from 'projects' array)
+  
   const projectStatusCounts = projects.reduce((acc, project) => {
     acc[project.status] = (acc[project.status] || 0) + 1;
     return acc;
@@ -140,10 +137,10 @@ const AdminDashboard = () => {
   const projectStatusValues = Object.values(projectStatusCounts);
 
   const projectStatusColors = projectStatusLabels.map(status => {
-    if (status === 'active') return '#10b981'; // Green
-    if (status === 'archived') return '#f97316'; // Orange
-    // Add more statuses if you have them
-    return '#64748b'; // Grey for others
+    if (status === 'active') return '#10b981'; 
+    if (status === 'archived') return '#f97316'; 
+   
+    return '#64748b'; 
   });
 
   const projectStatusChartData = {
@@ -158,27 +155,28 @@ const AdminDashboard = () => {
     ],
   };
 
-  // 3. User Registration Trend Line Chart (using 'userRegistrationTrend' state)
+  
   const userRegistrationChartData = {
-    labels: userRegistrationTrend.map(item => item.date), // Assuming 'date' property
+    labels: userRegistrationTrend.map(item => item.date), 
     datasets: [
       {
         label: 'New Users',
-        data: userRegistrationTrend.map(item => item.count), // Assuming 'count' property
+        data: userRegistrationTrend.map(item => item.count), 
+        
         fill: false,
-        borderColor: '#4f46e5', // Indigo
+        borderColor: '#4f46e5', 
         tension: 0.1,
       },
     ],
   };
 
-  // 4. Project Creation Trend Line Chart (using 'projectCreationTrend' state)
+  
   const projectCreationChartData = {
-    labels: projectCreationTrend.map(item => item.date), // Assuming 'date' property
+    labels: projectCreationTrend.map(item => item.date), 
     datasets: [
       {
         label: 'New Projects',
-        data: projectCreationTrend.map(item => item.count), // Assuming 'count' property
+        data: projectCreationTrend.map(item => item.count), 
         fill: false,
         borderColor: '#22c55e', // Green
         tension: 0.1,
@@ -186,7 +184,7 @@ const AdminDashboard = () => {
     ],
   };
 
-  // 5. User Role Distribution Bar/Pie Chart (using 'userRoleDistribution' state)
+  
   const userRoleLabels = Object.keys(userRoleDistribution);
   const userRoleCounts = Object.values(userRoleDistribution);
 
@@ -197,9 +195,9 @@ const AdminDashboard = () => {
         label: 'Number of Users',
         data: userRoleCounts,
         backgroundColor: [
-          '#4f46e5', // Indigo for Admin
-          '#0ea5e9', // Sky for Standard
-          '#facc15', // Yellow for others (if any)
+          '#4f46e5', 
+          '#0ea5e9', 
+          '#facc15', 
         ],
         borderColor: '#ffffff',
         borderWidth: 1,
@@ -449,7 +447,7 @@ const styles = {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
     gap: '20px',
-    marginBottom: '30px', // Added margin for spacing between stats and charts
+    marginBottom: '30px',
   },
   statCard: {
     backgroundColor: '#f8fafc',

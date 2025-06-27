@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import API from '../api/axios'; // Ensure this path is correct
+import API from '../api/axios'; 
 import Swal from 'sweetalert2';
 
 const Collaborators = () => {
@@ -17,7 +17,7 @@ const Collaborators = () => {
     role: 'editor',
     message: ''
   });
-  const [activeTab, setActiveTab] = useState('users'); // 'users' or 'requests'
+  const [activeTab, setActiveTab] = useState('users'); 
   const [viewUser, setViewUser] = useState(null);
 
   useEffect(() => {
@@ -29,22 +29,14 @@ const Collaborators = () => {
       setLoading(true);
       setError(null);
 
-      // Fetch all data in parallel
+      
       const [usersRes, projectsRes, requestsRes] = await Promise.all([
-        // IMPORTANT: Confirm your backend's actual endpoint for searching/getting users.
-        // If it's '/api/admin/users' or another specific path, use that.
-        // Assuming '/users-search' returns either an array directly OR { users: [...] } OR { data: [...] }
         API.get('/users-search'),
-        // IMPORTANT: Confirm your backend's actual endpoint for projects.
-        // If it's '/api/admin/projects' or another specific path, use that.
         API.get('/projects'),
-        // IMPORTANT: Confirm your backend's actual endpoint for collaboration requests.
-        // If it's '/api/admin/collaborations' or another specific path, use that.
         API.get('/collaborations/requests')
       ]);
 
-      // ✅ CRITICAL FIX for Data Structure: Ensure API responses are correctly parsed into arrays.
-      // This handles cases where API might wrap the array in an object (e.g., { users: [...] })
+      
       const usersData = Array.isArray(usersRes.data) ? usersRes.data : usersRes.data.users || usersRes.data.data || [];
       setUsers(usersData);
 
@@ -53,13 +45,12 @@ const Collaborators = () => {
       
       const requestsData = Array.isArray(requestsRes.data) ? requestsRes.data : requestsRes.data.requests || requestsRes.data.data || [];
       
-      // Separate pending and accepted requests
+    
       setPendingRequests(requestsData.filter(req => req.status === 'pending'));
       setAcceptedRequests(requestsData.filter(req => req.status === 'accepted'));
 
     } catch (err) {
       console.error('Failed to fetch data:', err);
-      // Log the specific error response for more details
       console.error('API Error Response:', err.response?.data);
       setError('Failed to load data. Please try again.');
     } finally {
@@ -105,7 +96,7 @@ const Collaborators = () => {
           role: 'editor',
           message: ''
         });
-        fetchData(); // Refresh the data
+        fetchData(); 
       } else if (response.data.message === 'Collaboration request updated successfully') {
         Swal.fire({ icon: 'success', title: 'Updated', text: 'Collaboration request updated successfully!' });
         setShowModal(false);
@@ -115,7 +106,7 @@ const Collaborators = () => {
           role: 'editor',
           message: ''
         });
-        fetchData(); // Refresh the data
+        fetchData(); 
       } else {
         Swal.fire({ icon: 'error', title: 'Error', text: response.data.message || 'Unexpected response from server.' });
       }
@@ -140,7 +131,7 @@ const Collaborators = () => {
       
       if (response.data.message === 'Collaboration request accepted') {
         Swal.fire({ icon: 'success', title: 'Success', text: 'Collaboration request accepted!' });
-        fetchData(); // Refresh the data
+        fetchData(); 
       } else {
         throw new Error('Unexpected response format');
       }
@@ -312,11 +303,9 @@ const Collaborators = () => {
                 <div style={styles.requestsSection}>
                   <h3 style={styles.sectionTitle}>Pending Requests</h3>
                   {pendingRequests.map(request => (
-                    // ✅ Defensive check for request object and _id
                     request && typeof request === 'object' && request._id ? (
                       <div key={request._id} style={styles.requestCard}>
                         <div style={styles.requestHeader}>
-                          {/* ✅ Ensure sender.name and project.name are strings */}
                           <h4 style={styles.requestTitle}>
                             {String((request.sender && request.sender.name) || 'Unknown User')} invited you to collaborate on {String((request.project && request.project.name) || 'Unknown Project')}
                           </h4>
@@ -340,7 +329,7 @@ const Collaborators = () => {
                           </button>
                         </div>
                       </div>
-                    ) : null // Don't render if request or _id is invalid
+                    ) : null 
                   ))}
                 </div>
               )}
@@ -349,11 +338,9 @@ const Collaborators = () => {
                 <div style={styles.requestsSection}>
                   <h3 style={styles.sectionTitle}>Active Collaborations</h3>
                   {acceptedRequests.map(request => (
-                    // ✅ Defensive check for request object and _id
                     request && typeof request === 'object' && request._id ? (
                       <div key={request._id} style={styles.requestCard}>
                         <div style={styles.requestHeader}>
-                          {/* ✅ Ensure project.name and sender.name are strings */}
                           <h4 style={styles.requestTitle}>
                             Collaborating on {String((request.project && request.project.name) || 'Unknown Project')} with {String((request.sender && request.sender.name) || 'Unknown User')}
                           </h4>
@@ -365,7 +352,7 @@ const Collaborators = () => {
                           </p>
                         </div>
                       </div>
-                    ) : null // Don't render if request or _id is invalid
+                    ) : null 
                   ))}
                 </div>
               )}
@@ -386,7 +373,6 @@ const Collaborators = () => {
             >
               ×
             </button>
-            {/* ✅ Ensure selectedUser.name is a string */}
             <h3 style={styles.modalTitle}>Connect with {String(selectedUser.name || 'User')}</h3>
             
             <div style={styles.collaborationForm}>
@@ -404,7 +390,6 @@ const Collaborators = () => {
                   .filter(project => project && project._id && (project.name || project.title)) // Filter out malformed projects
                   .map(project => (
                     <option key={project._id} value={project._id}>
-                      {/* ✅ Ensure project name/title is a string */}
                       {String(project.name || project.title || 'Untitled Project')}
                     </option>
                   ))}

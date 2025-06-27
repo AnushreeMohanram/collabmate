@@ -1,4 +1,3 @@
-// server/controllers/aiController.js
 console.log('>>> aiController.js loaded');
 const Conversation = require('../models/Conversation');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
@@ -7,15 +6,12 @@ const geminiApiKey = process.env.GEMINI_API_KEY;
 
 if (!geminiApiKey) {
   console.error('ERROR: GEMINI_API_KEY is not set in environment variables.');
-  // In a production app, you might want to throw an error or exit here
+
 }
 
 const genAI = new GoogleGenerativeAI(geminiApiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-// Helper function (already present in your aiRoutes, but good to have in controller for organization)
-// Make sure this is also correctly implemented if you move it from aiRoutes.js
-const User = require('../models/User'); // Assuming User model is available
+const User = require('../models/User'); 
 async function updateUserAIUsage(userId, toolName) {
   try {
     const user = await User.findById(userId);
@@ -46,24 +42,24 @@ async function updateUserAIUsage(userId, toolName) {
 
 exports.summarizeConversation = async (req, res) => {
     const { conversationId } = req.body;
-    const userId = req.user._id; // Get user ID from authenticated request
+    const userId = req.user._id; 
 
     if (!conversationId) {
         return res.status(400).json({ message: 'Conversation ID is required.' });
     }
 
     try {
-        // 1. Fetch the conversation and its messages
+        
         const conversation = await Conversation.findById(conversationId).populate({
             path: 'messages',
-            options: { sort: { createdAt: 1 } } // Sort messages by creation date
+            options: { sort: { createdAt: 1 } } 
         });
 
         if (!conversation) {
             return res.status(404).json({ message: 'Conversation not found.' });
         }
 
-        // Optional: Check if user is a participant of the conversation for security
+        
         const isParticipant = conversation.participants.some(p => p._id.toString() === userId.toString());
         if (!isParticipant) {
             return res.status(403).json({ message: 'Not authorized to summarize this conversation.' });
@@ -73,9 +69,9 @@ exports.summarizeConversation = async (req, res) => {
             return res.status(400).json({ summary: 'No messages to summarize.' });
         }
 
-        // 2. Prepare the prompt for Gemini
+       
         const chatHistory = conversation.messages.map(msg => ({
-            role: msg.sender.toString() === userId.toString() ? 'user' : 'model', // Assuming 'model' for other participants, adjust if you have clear AI/human distinction in your message sender types
+            role: msg.sender.toString() === userId.toString() ? 'user' : 'model', 
             parts: [{ text: msg.content }]
         }));
 
@@ -84,7 +80,7 @@ exports.summarizeConversation = async (req, res) => {
         Conversation History:
         ${chatHistory.map(entry => `${entry.role}: ${entry.parts[0].text}`).join('\n')}`;
 
-        // 3. Generate summary using Gemini
+        
         if (!model || typeof model.generateContent !== 'function') {
             throw new Error('Gemini model not initialized correctly. Check API key and network.');
         }
@@ -93,13 +89,12 @@ exports.summarizeConversation = async (req, res) => {
         const response = await result.response;
         const aiSummary = response.text();
 
-        // 4. Save the summary back to the conversation
+        
         conversation.aiSummary = aiSummary;
         conversation.aiSummaryGeneratedAt = new Date();
         conversation.aiSummaryNeedsUpdate = false;
         await conversation.save();
 
-        // 5. Update AI usage stats
         await updateUserAIUsage(userId, 'ConversationSummary');
 
         res.json({ summary: aiSummary });

@@ -1,4 +1,3 @@
-// src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
 import Swal from 'sweetalert2';
@@ -44,11 +43,11 @@ const AdminDashboard = () => {
       setLoading(true);
       setError(null);
       
-      // Debug: Check if token exists
+      
       const token = localStorage.getItem('token');
       console.log('Token exists:', !!token);
       
-      // Debug: Log the request configuration
+      
       const config = {
         headers: {
           Authorization: `Bearer ${token}`
