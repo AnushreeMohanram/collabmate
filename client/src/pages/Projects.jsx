@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
 import API from '../api/axios';
 import ProjectCard from './ProjectCard';
-import AddProjectForm from './AddProjectForm';
 import FilterBar from './FilterBar';
-import ProjectModal from './ProjectModal';
+import Swal from 'sweetalert2';
 
 const Projects = () => {
   const [projects, setProjects] = useState([]);
   const [filteredProjects, setFilteredProjects] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [loading, setLoading] = useState(true);
+  const [selectedProject, setSelectedProject] = useState(null);
   const [activeTab, setActiveTab] = useState('all');
 
   useEffect(() => {
@@ -32,37 +34,43 @@ const Projects = () => {
     setLoading(true);
     try {
       const res = await API.get('/projects');
-      console.log('Fetched projects:', res.data);
-      
-      // Sort projects by creation date and add collaboration info
       const sortedProjects = res.data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      console.log('Sorted projects with roles:', sortedProjects);
-      
       setProjects(sortedProjects);
     } catch (err) {
-      console.error('Error fetching projects:', err);
-      alert('Error fetching projects');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error fetching projects' });
     }
     setLoading(false);
   };
 
-  const handleAdd = async (title, description) => {
-    if (!title.trim() || !description.trim()) return;
+  const handleAdd = async () => {
+    if (!newTitle.trim() || !newDescription.trim()) return;
     try {
-      await API.post('/projects', { name: title, description });
+      await API.post('/projects', { name: newTitle, description: newDescription });
+      setShowAddModal(false);
+      setNewTitle('');
+      setNewDescription('');
       fetchProjects();
     } catch (err) {
-      alert('Failed to add project');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to add project' });
     }
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Delete this project?')) return;
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Delete this project?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, delete it!'
+    });
+    if (!result.isConfirmed) return;
     try {
       await API.delete(`/projects/${id}`);
       fetchProjects();
     } catch (err) {
-      alert('Failed to delete project');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to delete project' });
     }
   };
 
@@ -74,13 +82,13 @@ const Projects = () => {
 
   return (
     <div style={styles.container}>
-      <h1 style={styles.heading}>✨ Your Projects</h1>
-
-      <div style={styles.controls}>
-        <AddProjectForm onAdd={handleAdd} />
+      <div style={styles.headerRow}>
+        <h1 style={styles.heading}>✨ Your Projects</h1>
+        <button style={styles.addButton} onClick={() => setShowAddModal(true)}>+ Add Project</button>
+      </div>
+      <div style={styles.centeredSearchBar}>
         <FilterBar value={searchTerm} onChange={setSearchTerm} />
       </div>
-
       <div style={styles.tabs}>
         <button 
           onClick={() => setActiveTab('all')}
@@ -101,17 +109,10 @@ const Projects = () => {
           Shared with Me ({filteredProjects.filter(p => p.userRole && p.userRole !== 'owner').length})
         </button>
       </div>
-
       {loading ? (
         <div style={styles.loader}>🔄 Loading projects...</div>
       ) : filteredProjectsByTab.length === 0 ? (
-        <p style={styles.noProjects}>
-          {activeTab === 'all' 
-            ? 'No projects yet. Create your first project!' 
-            : activeTab === 'owned'
-            ? 'You haven\'t created any projects yet.'
-            : 'No projects have been shared with you yet.'}
-        </p>
+        <p style={styles.noProjects}>No projects yet. Click 'Add Project' to create one!</p>
       ) : (
         <div style={styles.grid}>
           {filteredProjectsByTab.map((proj, i) => (
@@ -128,12 +129,129 @@ const Projects = () => {
           ))}
         </div>
       )}
-
+      {/* Add Project Modal */}
+      {showAddModal && (
+        <div style={styles.modalOverlay} onClick={() => setShowAddModal(false)}>
+          <div style={styles.modal} onClick={e => e.stopPropagation()}>
+            <h2 style={styles.modalTitle}>Add New Project</h2>
+            <input
+              type="text"
+              placeholder="Project Title"
+              value={newTitle}
+              onChange={e => setNewTitle(e.target.value)}
+              style={styles.modalInput}
+            />
+            <textarea
+              placeholder="Project Description"
+              value={newDescription}
+              onChange={e => setNewDescription(e.target.value)}
+              style={styles.modalTextarea}
+            />
+            <div style={styles.modalActions}>
+              <button style={styles.modalButton} onClick={handleAdd} disabled={!newTitle.trim() || !newDescription.trim()}>
+                Add Project
+              </button>
+              <button style={styles.modalCancel} onClick={() => setShowAddModal(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Project Details Modal */}
       {selectedProject && (
-        <ProjectModal
-          project={selectedProject}
-          onClose={() => setSelectedProject(null)}
-        />
+        <div style={styles.modalOverlay} onClick={() => setSelectedProject(null)}>
+          <div style={{
+            ...styles.modal,
+            backgroundColor: '#fff',
+            border: '1.5px solid #e5e7eb',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            maxWidth: 420,
+            padding: 36,
+            position: 'relative',
+          }} onClick={e => e.stopPropagation()}>
+            <h2 style={{...styles.modalTitle, marginBottom: 8}}>{selectedProject.name || selectedProject.title}</h2>
+            <p style={{...styles.modalTextarea, color: '#475569', fontSize: 15, marginBottom: 18}}>{selectedProject.description}</p>
+            <div style={{ margin: '24px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 18 }}>
+              <span style={{ fontWeight: 600, fontSize: 15, color: '#334155' }}>Status:</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ color: selectedProject.status === 'completed' ? '#22c55e' : '#64748b', fontWeight: 500, fontSize: 15 }}>
+                  {selectedProject.status === 'completed' ? 'Completed' : 'Active'}
+                </span>
+                {/* Modern Switch */}
+                <label style={{ position: 'relative', display: 'inline-block', width: 48, height: 26, marginLeft: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedProject.status === 'completed'}
+                    onChange={async (e) => {
+                      const newStatus = e.target.checked ? 'completed' : 'active';
+                      try {
+                        await API.patch(`/projects/${selectedProject._id}`, { status: newStatus });
+                        setSelectedProject({ ...selectedProject, status: newStatus });
+                        setProjects(projects => projects.map(p => p._id === selectedProject._id ? { ...p, status: newStatus } : p));
+                        await Swal.fire({
+                          icon: 'success',
+                          title: 'Status Updated',
+                          text: `Project marked as ${newStatus}.`,
+                          background: newStatus === 'completed' ? '#d1fae5' : '#e0e7ff',
+                          color: newStatus === 'completed' ? '#065f46' : '#1e293b',
+                          confirmButtonColor: newStatus === 'completed' ? '#22c55e' : '#4f46e5',
+                          customClass: { popup: 'swal2-border-radius' }
+                        });
+                      } catch (err) {
+                        await Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to update project status.' });
+                      }
+                    }}
+                    style={{ opacity: 0, width: 0, height: 0 }}
+                  />
+                  <span style={{
+                    position: 'absolute',
+                    cursor: 'pointer',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: selectedProject.status === 'completed' ? '#22c55e' : '#e5e7eb',
+                    borderRadius: 26,
+                    transition: 'background 0.2s',
+                    boxShadow: selectedProject.status === 'completed' ? '0 0 0 2px #bbf7d0' : 'none',
+                  }}></span>
+                  <span style={{
+                    position: 'absolute',
+                    left: selectedProject.status === 'completed' ? 24 : 2,
+                    top: 2,
+                    width: 22,
+                    height: 22,
+                    background: '#fff',
+                    borderRadius: '50%',
+                    boxShadow: '0 1px 4px rgba(0,0,0,0.10)',
+                    transition: 'left 0.2s',
+                    border: '1.5px solid #e5e7eb',
+                  }}></span>
+                </label>
+              </div>
+            </div>
+            <button
+              style={{
+                ...styles.modalButton,
+                backgroundColor: '#4f46e5',
+                color: '#fff',
+                fontWeight: 600,
+                fontSize: 15,
+                borderRadius: 8,
+                padding: '10px 28px',
+                marginTop: 10,
+                boxShadow: '0 2px 8px rgba(79,70,229,0.08)',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.2s',
+              }}
+              onClick={() => setSelectedProject(null)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );
@@ -147,17 +265,116 @@ const styles = {
     fontFamily: 'Inter, sans-serif',
     background: 'linear-gradient(135deg, #f0f4ff, #fff)',
   },
+  headerRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '30px',
+  },
   heading: {
     fontSize: '32px',
     fontWeight: '700',
+    color: '#1e293b',
+    margin: 0,
+  },
+  addButton: {
+    padding: '12px 24px',
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: '600',
+    fontSize: '16px',
+    cursor: 'pointer',
+    boxShadow: '0 2px 8px rgba(79,70,229,0.08)',
+    transition: 'background 0.2s',
+  },
+  centeredSearchBar: {
+    display: 'flex',
+    justifyContent: 'center',
     marginBottom: '30px',
+  },
+  loader: {
+    marginTop: '20px',
+    fontStyle: 'italic',
+    color: '#64748b',
+  },
+  noProjects: {
+    marginTop: '20px',
+    color: '#94a3b8',
+    textAlign: 'center',
+    fontSize: '16px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+    gap: '30px',
+  },
+  modalOverlay: {
+    position: 'fixed',
+    inset: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1000,
+  },
+  modal: {
+    backgroundColor: '#fff',
+    padding: '32px',
+    borderRadius: '12px',
+    maxWidth: '400px',
+    width: '90%',
+    boxShadow: '0 6px 20px rgba(0,0,0,0.15)',
+    textAlign: 'center',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: '18px',
+  },
+  modalTitle: {
+    fontSize: '22px',
+    fontWeight: '600',
+    marginBottom: '10px',
     color: '#1e293b',
   },
-  controls: {
+  modalInput: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '15px',
+    marginBottom: '10px',
+  },
+  modalTextarea: {
+    padding: '12px',
+    borderRadius: '8px',
+    border: '1px solid #d1d5db',
+    fontSize: '15px',
+    minHeight: '80px',
+    marginBottom: '10px',
+    resize: 'vertical',
+  },
+  modalActions: {
     display: 'flex',
-    gap: '20px',
-    flexWrap: 'wrap',
-    marginBottom: '20px',
+    gap: '12px',
+    justifyContent: 'center',
+  },
+  modalButton: {
+    padding: '10px 20px',
+    backgroundColor: '#4f46e5',
+    color: '#fff',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: '600',
+    cursor: 'pointer',
+  },
+  modalCancel: {
+    padding: '10px 20px',
+    backgroundColor: '#f1f5f9',
+    color: '#1e293b',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: '600',
+    cursor: 'pointer',
   },
   tabs: {
     display: 'flex',
@@ -185,22 +402,6 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 'bold',
-  },
-  loader: {
-    marginTop: '20px',
-    fontStyle: 'italic',
-    color: '#64748b',
-  },
-  noProjects: {
-    marginTop: '20px',
-    color: '#94a3b8',
-    textAlign: 'center',
-    fontSize: '16px',
-  },
-  grid: {
-    display: 'grid',
-    gap: '25px',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
   },
 };
 

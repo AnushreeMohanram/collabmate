@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import Swal from 'sweetalert2';
 
 const ComposeMessageForm = ({ onSend }) => {
   const [receiver, setReceiver] = useState('');
@@ -7,7 +8,7 @@ const ComposeMessageForm = ({ onSend }) => {
 
   const handleSubmit = () => {
     if (!receiver || !subject || !content) {
-      alert('Fill in all fields!');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Fill in all fields!' });
       return;
     }
     onSend(receiver, subject, content);

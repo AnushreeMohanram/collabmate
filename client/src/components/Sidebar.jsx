@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import API from '../api/axios'; // Make sure this path is correct
+import Swal from 'sweetalert2';
 
 const Sidebar = ({ isAdmin }) => {
   const navigate = useNavigate();
@@ -20,9 +21,8 @@ const Sidebar = ({ isAdmin }) => {
             setErrorUser(null);
             const response = await API.get('/users/profile');
             if (response.data) {
-                // Ensure you're pulling the correct fields for name/avatar from your user profile schema
-                // Assuming profile.firstName/lastName or just a 'name' field, and 'avatar' field.
-                setUserName(response.data.profile?.firstName || response.data.username || 'User');
+                // Use the full name if available, fallback to username or 'Guest'
+                setUserName(response.data.name || response.data.username || 'Guest');
                 setUserAvatar(response.data.avatar || 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png');
             }
         } catch (err) {
@@ -48,7 +48,17 @@ const Sidebar = ({ isAdmin }) => {
     fetchUserData();
   }, [location.pathname, isAdmin]); // Re-fetch on route change or isAdmin prop change
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    const result = await Swal.fire({
+      title: 'Are you sure?',
+      text: 'Do you want to logout?',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#4f46e5',
+      cancelButtonColor: '#d33',
+      confirmButtonText: 'Yes, logout!'
+    });
+    if (!result.isConfirmed) return;
     localStorage.clear();
     navigate('/'); // Navigate to the root login page
   };

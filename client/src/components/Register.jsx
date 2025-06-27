@@ -126,11 +126,11 @@ const Register = () => {
 
   const styles = {
     page: {
-      fontFamily: 'sans-serif',
-      backgroundColor: '#fff',
+      fontFamily: 'Inter, sans-serif',
+      background: 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)',
       minHeight: '100vh',
       margin: 0,
-      display: 'flex', // Add flex to center content vertically
+      display: 'flex',
       flexDirection: 'column',
     },
     navbar: {
@@ -139,15 +139,18 @@ const Register = () => {
       alignItems: 'center',
       padding: '20px 40px',
       borderBottom: '1px solid #eee',
-      backgroundColor: '#f8fafc', // Added a light background for clarity
+      backgroundColor: 'rgba(248,250,252,0.95)',
+      boxShadow: '0 2px 8px rgba(79,70,229,0.04)',
+      backdropFilter: 'blur(2px)',
     },
     logo: {
-      fontWeight: '600',
-      fontSize: '22px',
+      fontWeight: '700',
+      fontSize: '24px',
       display: 'flex',
       alignItems: 'center',
-      gap: '8px',
-      color: '#1e293b', // Darker color for logo text
+      gap: '10px',
+      color: '#4f46e5',
+      letterSpacing: '1px',
     },
     navLinks: {
       display: 'flex',
@@ -155,14 +158,15 @@ const Register = () => {
       fontSize: '16px',
     },
     container: {
-      maxWidth: '400px',
-      margin: '60px auto', // Centered with margin
-      padding: '20px',
+      maxWidth: '420px',
+      margin: '60px auto',
+      padding: '32px 28px',
       backgroundColor: '#fff',
-      borderRadius: '12px',
-      boxShadow: '0 4px 20px rgba(0,0,0,0.08)', // Stronger shadow
+      borderRadius: '18px',
+      boxShadow: '0 8px 32px rgba(79,70,229,0.10)',
+      border: '1.5px solid #e0e7ff',
       boxSizing: 'border-box',
-      flexShrink: 0, // Prevent shrinking when content is too tall
+      flexShrink: 0,
     },
     title: {
       fontSize: '32px',
@@ -222,26 +226,23 @@ const Register = () => {
     },
     button: {
       width: '100%',
-      padding: '14px', // Slightly larger button
-      backgroundColor: '#4f46e5', // Primary brand color
+      padding: '15px',
+      background: 'linear-gradient(90deg, #6366f1 0%, #4f46e5 100%)',
       color: '#fff',
-      fontSize: '16px',
-      fontWeight: '600', // Bolder text
-      borderRadius: '8px',
+      fontSize: '17px',
+      fontWeight: '700',
+      borderRadius: '10px',
       border: 'none',
       cursor: 'pointer',
-      marginTop: '25px', // More margin at top
-      transition: 'background-color 0.3s ease, transform 0.1s ease',
-      '&:hover': {
-        backgroundColor: '#4338ca', // Darker shade on hover
-        transform: 'translateY(-1px)', // Slight lift effect
-      },
+      marginTop: '28px',
+      transition: 'background 0.2s, transform 0.1s',
+      boxShadow: '0 2px 8px rgba(79,70,229,0.08)',
     },
     buttonDisabled: {
-      backgroundColor: '#94a3b8',
+      background: '#c7d2fe',
       cursor: 'not-allowed',
-      opacity: 0.7, // More visible disabled state
-      transform: 'none', // No lift effect when disabled
+      opacity: 0.7,
+      transform: 'none',
     },
     footerText: {
       textAlign: 'center',
@@ -305,10 +306,6 @@ const Register = () => {
         <div style={styles.logo}>
           <span style={{ fontSize: '22px' }}>👥</span> CollabMate
         </div>
-        <nav style={styles.navLinks}>
-          <a href="/projects" style={{textDecoration: 'none', color: 'inherit'}}>Projects</a> {/* Added styles for consistency */}
-          <a href="/about" style={{textDecoration: 'none', color: 'inherit'}}>About</a>
-        </nav>
       </header>
 
       <div style={styles.container}>

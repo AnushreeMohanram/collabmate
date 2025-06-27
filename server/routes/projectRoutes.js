@@ -109,7 +109,6 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-
 // 🟥 Delete project
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
@@ -147,5 +146,34 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// PATCH endpoint to update project status
+router.patch('/:id', authMiddleware, async (req, res) => {
+  try {
+    const { status } = req.body;
+    if (!['active', 'completed'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+    const project = await Project.findById(req.params.id);
+    if (!project) {
+      return res.status(404).json({ error: 'Project not found' });
+    }
+    // Only allow owner or accepted collaborator to update status
+    const isOwner = project.owner.toString() === req.user._id.toString();
+    const collaboration = await Collaboration.findOne({
+      project: req.params.id,
+      receiver: req.user._id,
+      status: 'accepted'
+    });
+    if (!isOwner && !collaboration) {
+      return res.status(403).json({ error: 'Not authorized to update this project' });
+    }
+    project.status = status;
+    await project.save();
+    res.json({ message: 'Project status updated', status: project.status });
+  } catch (err) {
+    console.error('❌ Error updating project status:', err);
+    res.status(500).json({ error: 'Failed to update project status' });
+  }
+});
 
 module.exports = router;

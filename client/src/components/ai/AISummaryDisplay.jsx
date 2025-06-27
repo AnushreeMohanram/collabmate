@@ -1,10 +1,11 @@
 // client/src/components/ai/AISummaryDisplay.jsx
 import React from 'react';
+import Swal from 'sweetalert2';
 
 const AISummaryDisplay = ({ summary, onClose, isStale, lastGeneratedAt }) => {
     const handleCopyToClipboard = () => {
         navigator.clipboard.writeText(summary);
-        alert('Summary copied to clipboard!');
+        Swal.fire({ icon: 'success', title: 'Copied!', text: 'Summary copied to clipboard!' });
     };
 
     return (

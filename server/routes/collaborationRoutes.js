@@ -16,7 +16,7 @@ router.post('/request', authMiddleware, async (req, res) => {
       return res.status(400).json({ error: 'Project ID and receiver ID are required' });
     }
 
-    // Check if project exists and user is owner
+    
     const project = await Project.findById(projectId);
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
@@ -33,7 +33,17 @@ router.post('/request', authMiddleware, async (req, res) => {
     });
 
     if (existingCollab) {
-      return res.status(400).json({ error: 'Collaboration request already exists' });
+      if (existingCollab.status === 'pending') {
+        existingCollab.role = role || existingCollab.role;
+        existingCollab.message = message || existingCollab.message;
+        await existingCollab.save();
+        return res.status(200).json({
+          message: 'Collaboration request updated successfully',
+          collaboration: existingCollab
+        });
+      } else {
+        return res.status(400).json({ error: 'Collaboration request already exists' });
+      }
     }
 
     // Create collaboration request
@@ -83,7 +93,7 @@ router.get('/requests', authMiddleware, async (req, res) => {
   }
 });
 
-// Accept collaboration request
+
 router.put('/accept/:id', authMiddleware, async (req, res) => {
   try {
     console.log('Accepting collaboration request:', req.params.id);
@@ -112,7 +122,7 @@ router.put('/accept/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Reject collaboration request
+
 router.put('/reject/:id', authMiddleware, async (req, res) => {
   try {
     console.log('Rejecting collaboration request:', req.params.id);
@@ -141,7 +151,7 @@ router.put('/reject/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// Get project collaborators
+
 router.get('/project/:projectId', authMiddleware, async (req, res) => {
   try {
     console.log('Fetching collaborators for project:', req.params.projectId);
@@ -162,7 +172,7 @@ router.get('/project/:projectId', authMiddleware, async (req, res) => {
   }
 });
 
-// Remove collaborator
+
 router.delete('/remove/:id', authMiddleware, async (req, res) => {
   try {
     console.log('Removing collaborator:', req.params.id);
@@ -173,7 +183,7 @@ router.delete('/remove/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Collaboration not found' });
     }
 
-    // Check if user is project owner
+    
     const project = await Project.findById(collaboration.project);
     if (project.owner.toString() !== req.user._id.toString()) {
       return res.status(403).json({ error: 'Only project owner can remove collaborators' });

@@ -1,6 +1,7 @@
 // src/pages/AdminDashboard.jsx
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios';
+import Swal from 'sweetalert2';
 
 const AdminDashboard = () => {
   const [stats, setStats] = useState({
@@ -122,10 +123,10 @@ const AdminDashboard = () => {
       setUsers(users.map(user => 
         user._id === userId ? { ...user, active: action === 'activate' } : user
       ));
-      alert(res.data.message);
+      Swal.fire({ icon: 'success', title: 'Success', text: res.data.message });
     } catch (err) {
       console.error(`Failed to ${action} user:`, err);
-      alert(err.response?.data?.error || `Failed to ${action} user`);
+      Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.error || `Failed to ${action} user` });
     }
   };
 
@@ -135,10 +136,10 @@ const AdminDashboard = () => {
       setProjects(projects.map(project => 
         project._id === projectId ? { ...project, status: 'archived' } : project
       ));
-      alert(res.data.message);
+      Swal.fire({ icon: 'success', title: 'Success', text: res.data.message });
     } catch (err) {
       console.error('Failed to archive project:', err);
-      alert(err.response?.data?.error || 'Failed to archive project');
+      Swal.fire({ icon: 'error', title: 'Error', text: err.response?.data?.error || 'Failed to archive project' });
     }
   };
 

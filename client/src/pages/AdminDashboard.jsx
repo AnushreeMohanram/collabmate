@@ -13,6 +13,7 @@ import { // Import Chart.js essentials
   Tooltip,
   Legend,
 } from 'chart.js';
+import Swal from 'sweetalert2';
 
 // Register Chart.js components (important!)
 ChartJS.register(
@@ -79,7 +80,7 @@ const AdminDashboard = () => {
 
     } catch (err) {
       console.error('Error fetching dashboard data:', err);
-      alert('Failed to load dashboard data');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Failed to load dashboard data' });
     } finally {
       setLoading(false);
     }
@@ -89,9 +90,9 @@ const AdminDashboard = () => {
     try {
       await API.put(`/admin/users/${userId}/${action}`);
       fetchDashboardData();
-      alert(`User ${action} successfully`);
+      Swal.fire({ icon: 'success', title: 'Success', text: `User ${action} successfully` });
     } catch (err) {
-      alert(`Failed to ${action} user`);
+      Swal.fire({ icon: 'error', title: 'Error', text: `Failed to ${action} user` });
     }
   };
 
@@ -99,9 +100,9 @@ const AdminDashboard = () => {
     try {
       await API.put(`/admin/projects/${projectId}/${action}`);
       fetchDashboardData();
-      alert(`Project ${action} successfully`);
+      Swal.fire({ icon: 'success', title: 'Success', text: `Project ${action} successfully` });
     } catch (err) {
-      alert(`Failed to ${action} project`);
+      Swal.fire({ icon: 'error', title: 'Error', text: `Failed to ${action} project` });
     }
   };
 
@@ -211,13 +212,6 @@ const AdminDashboard = () => {
     <div style={styles.container}>
       <div style={styles.header}>
           <h1 style={styles.heading}>👑 Admin Dashboard</h1>
-          <button 
-            onClick={fetchDashboardData}
-            style={styles.refreshButton}
-            disabled={loading}
-          >
-            {loading ? '🔄 Refreshing...' : '🔄 Refresh Data'}
-          </button>
       </div>
 
       <div style={styles.tabs}>
@@ -406,15 +400,6 @@ const styles = {
     fontSize: '24px',
     color: '#1e293b',
     margin: 0,
-  },
-  refreshButton: {
-    padding: '8px 16px',
-    backgroundColor: '#4f46e5',
-    color: 'white',
-    border: 'none',
-    borderRadius: '6px',
-    cursor: 'pointer',
-    fontSize: '14px',
   },
   tabs: {
     display: 'flex',

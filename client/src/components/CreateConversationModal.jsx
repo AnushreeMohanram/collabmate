@@ -1,6 +1,7 @@
 // client/src/components/CreateConversationModal.jsx
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios'; // Adjust path as needed
+import Swal from 'sweetalert2';
 
 const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
     const [searchTerm, setSearchTerm] = useState('');
@@ -65,14 +66,18 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
         setCreatingConversation(true);
         try {
             const participantIds = selectedParticipants.map(p => p._id);
-            // The backend automatically adds the current user, but sending their ID won't hurt.
-            // Let's ensure the current user's ID is implicitly or explicitly included if needed by backend.
-            // Based on previous controller: const allParticipantIds = Array.from(new Set([...participantIds, req.user._id.toString()]));
-            // So we only need to send the *other* participants' IDs.
-
             const res = await API.post('/conversations', {
                 participantIds: participantIds,
-                subject: subject.trim() || undefined, // Send undefined if empty to use backend default
+                subject: subject.trim() || undefined,
+            });
+            // Show SweetAlert2 success popup
+            await Swal.fire({
+                icon: 'success',
+                title: 'Conversation Created!',
+                text: 'Your new conversation has been created successfully.',
+                confirmButtonColor: '#4f46e5',
+                background: '#f0f9ff',
+                color: '#1e293b',
             });
             onCreateSuccess(res.data); // Pass the new conversation back to the parent
             onClose(); // Close the modal
@@ -99,7 +104,7 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
 
                 {/* Subject Input */}
                 <div style={modalStyles.inputGroup}>
-                    <label style={modalStyles.label}>Conversation Subject (Optional):</label>
+                    <label style={modalStyles.label}>Conversation Ttile</label>
                     <input
                         type="text"
                         value={subject}
@@ -148,7 +153,25 @@ const CreateConversationModal = ({ isOpen, onClose, onCreateSuccess }) => {
                     >
                         {creatingConversation ? 'Creating...' : 'Create Conversation'}
                     </button>
-                    <button onClick={onClose} style={modalStyles.cancelButton}>
+                    <button
+                        onClick={async () => {
+                            const result = await Swal.fire({
+                                title: 'Discard new conversation?',
+                                text: 'Are you sure you want to cancel creating this conversation? Your changes will be lost.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonText: 'Yes, cancel',
+                                cancelButtonText: 'No, keep editing',
+                                confirmButtonColor: '#ef4444',
+                                cancelButtonColor: '#4f46e5',
+                                reverseButtons: true
+                            });
+                            if (result.isConfirmed) {
+                                onClose();
+                            }
+                        }}
+                        style={modalStyles.cancelButton}
+                    >
                         Cancel
                     </button>
                 </div>

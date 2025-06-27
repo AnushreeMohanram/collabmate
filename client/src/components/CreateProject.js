@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from '../api/axios';
+import Swal from 'sweetalert2';
 
 const CreateProject = ({ userId }) => {
   const [name, setName] = useState('');
@@ -14,9 +15,9 @@ const CreateProject = ({ userId }) => {
         category,
         owner: userId
       });
-      alert(`Project Created: ${res.data.name}`);
+      Swal.fire({ icon: 'success', title: 'Success', text: `Project Created: ${res.data.name}` });
     } catch (err) {
-      alert("Error creating project");
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Error creating project' });
     }
   };
 

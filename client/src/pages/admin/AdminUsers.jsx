@@ -446,14 +446,6 @@ const AdminUsers = () => {
                 fontSize: '15px',
                 fontWeight: '600',
                 minWidth: '120px'
-              }}>Last Active</th>
-              <th style={{
-                padding: '18px 24px',
-                textAlign: 'left',
-                color: '#4a5568',
-                fontSize: '15px',
-                fontWeight: '600',
-                minWidth: '160px'
               }}>Actions</th>
             </tr>
           </thead>
@@ -529,11 +521,6 @@ const AdminUsers = () => {
                     {user.active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
-                <td style={{
-                  padding: '16px 24px',
-                  color: '#718096',
-                  fontSize: '15px'
-                }}>{user.lastActive ? new Date(user.lastActive).toLocaleDateString() : 'N/A'}</td>
                 <td style={{ padding: '16px 24px' }}>
                   <div style={{ display: 'flex', gap: '10px' }}>
                     <button
@@ -843,19 +830,6 @@ const AdminUsers = () => {
                   fontSize: '18px',
                   fontWeight: '600'
                 }}>{selectedUser.active ? 'Active' : 'Inactive'}</div>
-              </div>
-              <div>
-                <div style={{
-                  fontWeight: '600',
-                  color: '#64748b',
-                  marginBottom: '10px',
-                  fontSize: '15px'
-                }}>Last Activity</div>
-                <div style={{
-                  color: '#1e293b',
-                  fontSize: '18px',
-                  fontWeight: '500'
-                }}>{selectedUser.lastActive ? new Date(selectedUser.lastActive).toLocaleString() : 'N/A'}</div>
               </div>
               <div>
                 <div style={{

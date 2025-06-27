@@ -4,12 +4,14 @@ import API from '../api/axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import AISummaryDisplay from '../components/ai/AISummaryDisplay';
 import CreateConversationModal from '../components/CreateConversationModal'; // Import the new modal component
+import Swal from 'sweetalert2';
 
 const Conversations = () => {
     const { conversationId: urlConversationId } = useParams();
     const navigate = useNavigate();
     const messagesEndRef = useRef(null);
     const fileInputRef = useRef(null); // Ref for the file input
+    const lastMessageIdRef = useRef(null);
 
     const [conversations, setConversations] = useState([]);
     const [selectedConversation, setSelectedConversation] = useState(null);
@@ -29,10 +31,6 @@ const Conversations = () => {
 
     // New state for modal visibility
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-    // NEW STATE FOR FILE ATTACHMENTS
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [isUploadingFile, setIsUploadingFile] = useState(false); // To indicate only file is uploading
 
     const currentUser = JSON.parse(localStorage.getItem('user'));
 
@@ -62,7 +60,6 @@ const Conversations = () => {
         } catch (err) {
             console.error('Error fetching conversations:', err);
             setError('Failed to load conversations.');
-            // Optionally handle unauthorized/expired token by logging out or redirecting
             if (err.response && err.response.status === 401) {
                 localStorage.clear();
                 navigate('/login');
@@ -117,95 +114,65 @@ const Conversations = () => {
         }
     }, [messages]);
 
+    // Add a useEffect to show a toast when a new message is received
+    useEffect(() => {
+        if (messages.length > 0) {
+            const lastMsg = messages[messages.length - 1];
+            // Only show notification if the last message is not from the current user and is new
+            if (lastMsg && lastMsg._id !== lastMessageIdRef.current && lastMsg.sender && lastMsg.sender._id !== currentUser?._id) {
+                lastMessageIdRef.current = lastMsg._id;
+                Swal.fire({
+                    toast: true,
+                    position: 'top-end',
+                    icon: 'info',
+                    title: `New message from ${lastMsg.sender.name || 'Someone'}`,
+                    text: lastMsg.content ? lastMsg.content.slice(0, 80) : '',
+                    showConfirmButton: false,
+                    timer: 3500,
+                    timerProgressBar: true,
+                    background: '#f0f9ff',
+                    color: '#1e293b',
+                    customClass: { popup: 'swal2-border-radius' }
+                });
+            }
+        }
+    }, [messages, currentUser]);
+
     // --- Handlers ---
 
     const handleConversationSelect = (conversation) => {
         setSelectedConversation(conversation);
         navigate(`/dashboard/conversations/${conversation._id}`);
         setNewMessageContent('');
-        clearFileSelection(); // Clear selected file when changing conversations
         // --- REMOVED: setShowSummary(false) from here. Let useEffect handle initial state based on fetched data. ---
     };
-
-    // --- NEW FILE HANDLING FUNCTIONS ---
-    const handleFileChange = (event) => {
-        const file = event.target.files[0];
-        if (file) {
-            console.log('File selected:', file);
-            console.log('File type (mimetype property):', file.type);
-            console.log('File size:', file.size);
-
-            const allowedMimeTypes = [
-                'image/jpeg', 'image/png', 'image/gif',
-                'application/pdf',
-                'text/plain',
-                'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                'application/zip', 'application/x-rar-compressed',
-                'video/mp4', 'video/quicktime', 'video/x-msvideo',
-                'audio/mpeg', 'audio/wav'
-            ];
-            const maxSize = 25 * 1024 * 1024; // 25MB, matches backend Multer limit
-
-            if (!allowedMimeTypes.includes(file.type)) {
-                alert('Unsupported file type. Please upload a common image, document, video, audio, or archive (max 25MB).');
-                setSelectedFile(null);
-                if (fileInputRef.current) fileInputRef.current.value = ''; // Clear input
-                return;
-            }
-            if (file.size > maxSize) {
-                alert('File size exceeds 25MB limit.');
-                setSelectedFile(null);
-                if (fileInputRef.current) fileInputRef.current.value = ''; // Clear input
-                return;
-            }
-            setSelectedFile(file);
-        }
-    };
-
-    const clearFileSelection = () => {
-        setSelectedFile(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = ''; // Clear the file input element itself
-        }
-    };
-
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
     
-        if (!newMessageContent.trim() && !selectedFile) {
-            alert('Please type a message or select a file to send.');
+        if (!newMessageContent.trim()) {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Please type a message.' });
             return;
         }
         if (!selectedConversation) {
-            alert('Please select a conversation.');
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a conversation.' });
             return;
         }
     
         setSendingMessage(true);
-        setIsUploadingFile(false);
     
         try {
-            // Prepare FormData for the message, including text content and files
-            const messageFormData = new FormData();
-            messageFormData.append('conversationId', selectedConversation._id);
-            messageFormData.append('content', newMessageContent.trim());
-            
-            if (selectedFile) {
-                messageFormData.append('attachments', selectedFile); // Append the file directly
-            }
-            
-            const messageResponse = await API.post('/messages', messageFormData, { // POST to /messages (unified endpoint)
+            const messageResponse = await API.post('/messages', {
+                conversationId: selectedConversation._id,
+                content: newMessageContent.trim()
+            }, {
                 headers: {
-                    'Content-Type': 'multipart/form-data', // Important for FormData
                     Authorization: `Bearer ${localStorage.getItem('token')}`
                 }
             });
     
             setMessages(prevMessages => [...prevMessages, messageResponse.data]); 
             setNewMessageContent('');
-            clearFileSelection();
     
             // Update conversation list and summary staleness
             setConversations(prevConvs => prevConvs.map(conv =>
@@ -225,18 +192,14 @@ const Conversations = () => {
             setSummaryStale(true);
     
         } catch (err) {
-            console.error('Error sending message or uploading file:', err);
+            console.error('Error sending message:', err);
             if (err.response) {
                 console.error('Server response data:', err.response.data);
                 console.error('Server response status:', err.response.status);
             }
-            setError('Failed to send message or upload file. ' + (err.response?.data?.message || err.message));
-            if (selectedFile) {
-                clearFileSelection();
-            }
+            setError('Failed to send message. ' + (err.response?.data?.message || err.message));
         } finally {
             setSendingMessage(false);
-            setIsUploadingFile(false);
         }
     };
 
@@ -295,9 +258,14 @@ const Conversations = () => {
 
     // --- UI Rendering ---
     return (
-        <div style={styles.container}>
+        <div style={{
+            ...styles.container,
+            minHeight: '100vh',
+        }}>
             {/* Left Sidebar: Conversation List */}
-            <div style={styles.conversationListContainer}>
+            <div style={{
+                ...styles.conversationListContainer,
+            }}>
                 <h3 style={styles.listTitle}>Your Conversations</h3>
                 {loadingConversations ? (
                     <p style={styles.loadingText}>Loading conversations...</p>
@@ -340,7 +308,9 @@ const Conversations = () => {
             </div>
 
             {/* Right Panel: Message Thread & Input */}
-            <div style={styles.messageThreadContainer}>
+            <div style={{
+                ...styles.messageThreadContainer,
+            }}>
                 {!selectedConversation ? (
                     <div style={styles.noConversationSelected}>
                         <p>Select a conversation from the left to view messages.</p>
@@ -389,7 +359,9 @@ const Conversations = () => {
                         </div>
 
                         {/* Message List */}
-                        <div style={styles.messagesList}>
+                        <div style={{
+                            ...styles.messagesList,
+                        }}>
                             {loadingMessages ? (
                                 <p style={styles.loadingText}>Loading messages...</p>
                             ) : messages.length === 0 ? (
@@ -401,8 +373,7 @@ const Conversations = () => {
                                         key={msg._id}
                                         style={{
                                             ...styles.messageBubble,
-                                            // Check if sender exists and matches current user
-                                            ...(msg.sender && msg.sender._id === currentUser?._id ? styles.myMessage : styles.otherMessage)
+                                            ...(msg.sender && msg.sender._id === currentUser?._id ? styles.myMessage : styles.otherMessage),
                                         }}
                                     >
                                         <p style={styles.messageSender}>
@@ -411,37 +382,6 @@ const Conversations = () => {
                                         </p>
                                         {/* Display message content only if present */}
                                         {msg.content && msg.content.trim() !== '' && <p style={styles.messageContent}>{msg.content}</p>}
-
-                                        {/* NEW: Display Attachments */}
-                                        {msg.attachments && msg.attachments.length > 0 && (
-                                            <div style={styles.attachmentsContainer}>
-                                                {msg.attachments.map((attachment, index) => (
-                                                    <div key={index} style={styles.attachmentItem}>
-                                                        {attachment.mimetype.startsWith('image/') ? (
-                                                            <img
-                                                                src={`${process.env.REACT_APP_API_BASE_URL}${attachment.filePath}`}
-                                                                alt={attachment.originalName}
-                                                                style={styles.attachedImage}
-                                                                onError={(e) => { e.target.onerror = null; e.target.src = "https://placehold.co/100x100/CCCCCC/FFFFFF?text=Image+Error"; }} // Fallback image on error
-                                                                onClick={() => window.open(`${process.env.REACT_APP_API_BASE_URL}${attachment.filePath}`, '_blank')} // Open in new tab
-                                                            />
-                                                        ) : (
-                                                            <a
-                                                                href={`${process.env.REACT_APP_API_BASE_URL}${attachment.filePath}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                download={attachment.originalName}
-                                                                style={styles.attachmentLink}
-                                                            >
-                                                                📄 {attachment.originalName} ({
-                                                                    (attachment.size / (1024 * 1024)).toFixed(2)
-                                                                } MB)
-                                                            </a>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        )}
 
                                         <p style={styles.messageTimestamp}>
                                             {new Date(msg.createdAt).toLocaleString()}
@@ -460,46 +400,19 @@ const Conversations = () => {
                                 placeholder="Type your message..."
                                 rows="3"
                                 style={styles.messageInput}
-                                disabled={sendingMessage || isUploadingFile}
+                                disabled={sendingMessage}
                             ></textarea>
-
-                            <div style={styles.fileInputContainer}>
-                                {/* Hidden file input */}
-                                <input
-                                    type="file"
-                                    id="file-upload-conversation"
-                                    ref={fileInputRef}
-                                    style={{ display: 'none' }}
-                                    onChange={handleFileChange}
-                                    disabled={sendingMessage || isUploadingFile}
-                                />
-                                {/* Custom label/button to trigger file input */}
-                                <label
-                                    htmlFor="file-upload-conversation"
-                                    style={styles.attachButton}
-                                >
-                                    📎 Attach File
-                                </label>
-                                {selectedFile && (
-                                    <span style={styles.selectedFileName}>
-                                        {selectedFile.name}
-                                        <button type="button" onClick={clearFileSelection} style={styles.clearFileButton}>
-                                            &times;
-                                        </button>
-                                    </span>
-                                )}
-                            </div>
 
                             <button
                                 type="submit"
                                 style={{
                                     ...styles.sendMessageButton,
-                                    opacity: (sendingMessage || isUploadingFile) ? 0.7 : 1,
-                                    cursor: (sendingMessage || isUploadingFile) ? 'not-allowed' : 'pointer'
+                                    opacity: sendingMessage ? 0.7 : 1,
+                                    cursor: sendingMessage ? 'not-allowed' : 'pointer'
                                 }}
-                                disabled={sendingMessage || isUploadingFile || (!newMessageContent.trim() && !selectedFile)}
+                                disabled={sendingMessage || (!newMessageContent.trim())}
                             >
-                                {isUploadingFile ? 'Uploading File...' : (sendingMessage ? 'Sending Message...' : 'Send Message')}
+                                {sendingMessage ? 'Sending Message...' : 'Send Message'}
                             </button>
                         </form>
                     </>
@@ -770,75 +683,6 @@ const styles = {
         textAlign: 'center',
         padding: '20px',
     },
-    // NEW FILE ATTACHMENT STYLES
-    fileInputContainer: {
-        display: 'flex',
-        alignItems: 'center',
-        gap: '10px',
-        marginBottom: '5px',
-    },
-    attachButton: {
-        padding: '8px 12px',
-        backgroundColor: '#6b7280',
-        color: 'white',
-        border: 'none',
-        borderRadius: '6px',
-        cursor: 'pointer',
-        fontSize: '14px',
-        fontWeight: 'bold',
-        transition: 'background-color 0.2s ease',
-        '&:hover': {
-            backgroundColor: '#4b5563',
-        },
-    },
-    selectedFileName: {
-        fontSize: '13px',
-        color: '#475569',
-        display: 'flex',
-        alignItems: 'center',
-        backgroundColor: '#e2e8f0',
-        padding: '5px 10px',
-        borderRadius: '5px',
-    },
-    clearFileButton: {
-        background: 'none',
-        border: 'none',
-        color: '#64748b',
-        fontSize: '16px',
-        marginLeft: '8px',
-        cursor: 'pointer',
-        '&:hover': {
-            color: '#ef4444',
-        }
-    },
-    attachmentsContainer: {
-        marginTop: '10px',
-        marginBottom: '5px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '5px',
-    },
-    attachmentItem: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: '8px',
-        padding: '8px',
-        display: 'flex',
-        alignItems: 'center',
-        gap: '8px',
-    },
-    attachedImage: {
-        maxWidth: '100%',
-        maxHeight: '150px',
-        borderRadius: '5px',
-        cursor: 'pointer',
-    },
-    attachmentLink: {
-        color: 'inherit',
-        textDecoration: 'underline',
-        fontWeight: 'bold',
-        fontSize: '14px',
-        wordBreak: 'break-all',
-    }
 };
 
 export default Conversations;

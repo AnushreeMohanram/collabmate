@@ -198,10 +198,6 @@ const Login = () => {
         <div style={styles.logo}>
           <span style={{ fontSize: '22px' }}>👥</span> CollabMate
         </div>
-        <nav style={styles.navLinks}>
-          <a href="/projects">Projects</a>
-          <a href="/about">About</a>
-        </nav>
       </header>
 
       <div style={styles.container}>

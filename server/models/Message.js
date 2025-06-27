@@ -62,14 +62,6 @@ const messageSchema = new mongoose.Schema({
     enum: ['active', 'archived', 'deleted', 'flagged'],
     default: 'active'
   },
-  // CORRECTED AND UPDATED ATTACHMENTS FIELD
-  attachments: [{
-    filePath: { type: String, required: true }, // The URL to access the file (e.g., /uploads/12345-my_file.pdf)
-    fileName: { type: String, required: true }, // The unique name given by Multer
-    originalName: { type: String, required: true }, // The original name from user's computer
-    mimetype: { type: String, required: true },
-    size: { type: Number, required: true },
-  }],
   mentions: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

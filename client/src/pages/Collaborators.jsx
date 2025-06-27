@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import API from '../api/axios'; // Ensure this path is correct
+import Swal from 'sweetalert2';
 
 const Collaborators = () => {
   const [users, setUsers] = useState([]);
@@ -17,6 +18,7 @@ const Collaborators = () => {
     message: ''
   });
   const [activeTab, setActiveTab] = useState('users'); // 'users' or 'requests'
+  const [viewUser, setViewUser] = useState(null);
 
   useEffect(() => {
     fetchData();
@@ -74,7 +76,7 @@ const Collaborators = () => {
   const handleCollaborationRequest = async (userId) => {
     try {
       if (!collaborationRequest.projectId) {
-        alert('Please select a project');
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Please select a project' });
         return;
       }
 
@@ -95,7 +97,17 @@ const Collaborators = () => {
       console.log('Collaboration request response:', response.data);
 
       if (response.data.message === 'Collaboration request sent successfully') {
-        alert('Collaboration request sent successfully!');
+        Swal.fire({ icon: 'success', title: 'Success', text: 'Collaboration request sent successfully!' });
+        setShowModal(false);
+        setSelectedUser(null);
+        setCollaborationRequest({
+          projectId: '',
+          role: 'editor',
+          message: ''
+        });
+        fetchData(); // Refresh the data
+      } else if (response.data.message === 'Collaboration request updated successfully') {
+        Swal.fire({ icon: 'success', title: 'Updated', text: 'Collaboration request updated successfully!' });
         setShowModal(false);
         setSelectedUser(null);
         setCollaborationRequest({
@@ -105,7 +117,7 @@ const Collaborators = () => {
         });
         fetchData(); // Refresh the data
       } else {
-        throw new Error('Unexpected response format');
+        Swal.fire({ icon: 'error', title: 'Error', text: response.data.message || 'Unexpected response from server.' });
       }
     } catch (err) {
       console.error('Failed to send collaboration request:', err);
@@ -116,7 +128,7 @@ const Collaborators = () => {
       });
       
       const errorMessage = err.response?.data?.error || 'Failed to send collaboration request. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error', text: errorMessage });
     }
   };
 
@@ -127,7 +139,7 @@ const Collaborators = () => {
       console.log('Accept response:', response.data);
       
       if (response.data.message === 'Collaboration request accepted') {
-        alert('Collaboration request accepted!');
+        Swal.fire({ icon: 'success', title: 'Success', text: 'Collaboration request accepted!' });
         fetchData(); // Refresh the data
       } else {
         throw new Error('Unexpected response format');
@@ -141,7 +153,7 @@ const Collaborators = () => {
       });
       
       const errorMessage = err.response?.data?.error || 'Failed to accept request. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error', text: errorMessage });
     }
   };
 
@@ -152,7 +164,7 @@ const Collaborators = () => {
       console.log('Reject response:', response.data);
       
       if (response.data.message === 'Collaboration request rejected') {
-        alert('Collaboration request rejected');
+        Swal.fire({ icon: 'success', title: 'Success', text: 'Collaboration request rejected' });
         fetchData(); // Refresh the data
       } else {
         throw new Error('Unexpected response format');
@@ -166,18 +178,19 @@ const Collaborators = () => {
       });
       
       const errorMessage = err.response?.data?.error || 'Failed to reject request. Please try again.';
-      alert(errorMessage);
+      Swal.fire({ icon: 'error', title: 'Error', text: errorMessage });
     }
   };
 
   const filteredUsers = users.filter(u =>
-    // Ensure 'u' is a valid object and has 'name' before checking
     u && typeof u === 'object' && u.name && (
       u.name.toLowerCase().includes(search.toLowerCase()) ||
       (u.email && u.email.toLowerCase().includes(search.toLowerCase())) ||
-      (u.skills && Array.isArray(u.skills) && u.skills.some(skill => 
-        typeof skill === 'string' && skill.toLowerCase().includes(search.toLowerCase())
-      ))
+      (u.skills && Array.isArray(u.skills) && u.skills.some(skill => {
+        if (typeof skill === 'string') return skill.toLowerCase().includes(search.toLowerCase());
+        if (typeof skill === 'object' && skill.name) return skill.name.toLowerCase().includes(search.toLowerCase());
+        return false;
+      }))
     )
   );
 
@@ -185,13 +198,6 @@ const Collaborators = () => {
     <div style={styles.container}>
       <div style={styles.header}>
         <h2 style={styles.heading}>🤝 Collaboration Hub</h2>
-        <button 
-          onClick={fetchData}
-          style={styles.refreshButton}
-          disabled={loading}
-        >
-          {loading ? '🔄 Loading...' : '🔄 Refresh'}
-        </button>
       </div>
 
       {error && (
@@ -249,7 +255,6 @@ const Collaborators = () => {
           ) : (
             <div style={styles.grid}>
               {filteredUsers.map((user) => (
-                // ✅ Defensive check for user object before accessing properties
                 user && typeof user === 'object' && user._id ? (
                   <div 
                     key={user._id} 
@@ -257,32 +262,40 @@ const Collaborators = () => {
                     onClick={() => handleConnect(user)}
                   >
                     <div style={styles.cardHeader}>
-                      {/* Ensure user.name is always a string for rendering */}
                       <h3 style={styles.userName}>{String(user.name || 'N/A')}</h3>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleConnect(user);
-                        }}
-                        style={styles.connectButton}
-                      >
-                        Invite to Project
-                      </button>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleConnect(user);
+                          }}
+                          style={styles.connectButton}
+                        >
+                          Invite to Project
+                        </button>
+                        <button
+                          onClick={e => {
+                            e.stopPropagation();
+                            setViewUser(user);
+                          }}
+                          style={styles.viewButton}
+                        >
+                          View User
+                        </button>
+                      </div>
                     </div>
-                    {/* Ensure user.email is always a string for rendering */}
                     <p style={styles.userEmail}>{String(user.email || 'N/A')}</p>
                     {user.skills && Array.isArray(user.skills) && user.skills.length > 0 && (
                       <div style={styles.skillsContainer}>
                         {user.skills.map((skill, index) => (
-                          // Ensure skill is a string for rendering
                           <span key={index} style={styles.skillTag}>
-                            {String(skill || 'N/A')}
+                            {typeof skill === 'string' ? skill : (skill && skill.name ? skill.name : 'N/A')}
                           </span>
                         ))}
                       </div>
                     )}
                   </div>
-                ) : null // Don't render if user or _id is invalid
+                ) : null
               ))}
             </div>
           )}
@@ -407,7 +420,6 @@ const Collaborators = () => {
               >
                 <option value="viewer">Viewer</option>
                 <option value="editor">Editor</option>
-                <option value="admin">Admin</option>
               </select>
               
               <textarea
@@ -426,6 +438,39 @@ const Collaborators = () => {
               >
                 Send Collaboration Request
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {viewUser && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modal}>
+            <button
+              onClick={() => setViewUser(null)}
+              style={styles.closeButton}
+            >
+              ×
+            </button>
+            <h3 style={styles.modalTitle}>User Details</h3>
+            <div style={{ marginBottom: '16px' }}>
+              <strong>Name:</strong> {String(viewUser.name || 'N/A')}<br />
+              <strong>Email:</strong> {String(viewUser.email || 'N/A')}<br />
+              {viewUser.skills && Array.isArray(viewUser.skills) && viewUser.skills.length > 0 && (
+                <>
+                  <strong>Skills:</strong>
+                  <div style={{ marginTop: '6px', marginBottom: '6px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                    {viewUser.skills.map((skill, idx) => (
+                      <span key={idx} style={styles.skillTag}>
+                        {typeof skill === 'string' ? skill : (skill && skill.name ? skill.name : 'N/A')}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+            <div style={styles.personalMessageBox}>
+              <span role="img" aria-label="wave">👋</span> Hey, do collaborate!
             </div>
           </div>
         </div>
@@ -453,27 +498,6 @@ const styles = {
     fontSize: '28px',
     color: '#1e293b',
     margin: 0,
-  },
-  refreshButton: {
-    padding: '10px 20px',
-    backgroundColor: '#4f46e5',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    fontSize: '14px',
-    fontWeight: 'bold',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px',
-    transition: 'all 0.2s ease',
-    '&:hover': {
-      backgroundColor: '#4338ca',
-    },
-    '&:disabled': {
-      backgroundColor: '#94a3b8',
-      cursor: 'not-allowed',
-    },
   },
   section: {
     backgroundColor: 'white',
@@ -635,6 +659,17 @@ const styles = {
     '&:hover': {
       backgroundColor: '#4338ca',
     },
+  },
+  viewButton: {
+    padding: '8px 14px',
+    backgroundColor: '#f1f5f9',
+    color: '#1e293b',
+    border: 'none',
+    borderRadius: '8px',
+    fontWeight: '600',
+    cursor: 'pointer',
+    fontSize: '14px',
+    transition: 'background 0.2s',
   },
   modalOverlay: {
     position: 'fixed',
@@ -826,6 +861,17 @@ const styles = {
     cursor: 'pointer',
     fontSize: '14px',
     fontWeight: 'bold',
+  },
+  personalMessageBox: {
+    background: '#f1f5f9',
+    color: '#4f46e5',
+    borderRadius: '8px',
+    padding: '14px 18px',
+    fontWeight: '600',
+    fontSize: '16px',
+    textAlign: 'center',
+    marginTop: '10px',
+    boxShadow: '0 2px 8px rgba(79,70,229,0.06)',
   },
 };
 

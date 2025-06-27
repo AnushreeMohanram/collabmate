@@ -110,19 +110,13 @@ router.get('/', authMiddleware, async (req, res) => {
 });
 
 // POST a new message (UPDATED TO HANDLE BOTH DIRECT AND CONVERSATION MESSAGES)
-router.post('/', authMiddleware, upload.array('attachments', 5), async (req, res) => {
+router.post('/', authMiddleware, async (req, res) => {
   try {
     // Destructure all possible fields that might be sent
     const { recipientId, subject, content, projectId, threadId, type, conversationId } = req.body;
 
-    // Handle attachments if any (keep as is)
-    const attachments = req.files ? req.files.map(file => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      mimeType: file.mimetype,
-      size: file.size,
-      url: `/uploads/messages/${file.filename}`
-    })) : [];
+    // Debug logs
+    console.log('req.body:', req.body);
 
     let messageData = {
       sender: req.user._id,
@@ -130,9 +124,9 @@ router.post('/', authMiddleware, upload.array('attachments', 5), async (req, res
       project: projectId,
       thread: threadId,
       type: type || 'message', // Default type
-      attachments: attachments,
       status: 'active'
     };
+    console.log('messageData:', messageData);
 
     // --- CRITICAL LOGIC FOR HANDLING MESSAGE TYPES ---
     if (conversationId) {
@@ -203,10 +197,6 @@ router.post('/', authMiddleware, upload.array('attachments', 5), async (req, res
     console.error('Error sending message:', err);
     if (err.name === 'ValidationError') {
       // Mongoose validation error
-      return res.status(400).json({ error: err.message });
-    }
-    // Handle Multer file upload errors
-    if (err instanceof multer.MulterError) {
       return res.status(400).json({ error: err.message });
     }
     // Handle other general errors

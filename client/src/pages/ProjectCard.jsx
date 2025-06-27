@@ -1,7 +1,29 @@
-const ProjectCard = ({ project, onDelete, onClick }) => (
-  <div style={styles.card} onClick={onClick}>
+const ProjectCard = ({ project, onClick }) => (
+  <div
+    style={{
+      ...styles.card,
+      backgroundColor: project.status === 'completed' ? '#d1fae5' : styles.card.backgroundColor,
+      border: project.status === 'completed' ? '2px solid #22c55e' : 'none',
+      color: project.status === 'completed' ? '#065f46' : styles.card.color,
+      position: 'relative',
+    }}
+    onClick={onClick}
+  >
     <div style={styles.header}>
       <h3 style={styles.title}>{project.name || project.title}</h3>
+      {project.status === 'completed' && (
+        <span style={{
+          backgroundColor: '#22c55e',
+          color: 'white',
+          borderRadius: '8px',
+          padding: '2px 10px',
+          fontSize: '12px',
+          fontWeight: 600,
+          marginLeft: 8,
+        }}>
+          Completed
+        </span>
+      )}
       {project.userRole && project.userRole !== 'owner' && (
         <span style={styles.collaborationBadge}>
           {project.userRole === 'editor' ? '✏️ Editor' : 
@@ -21,17 +43,6 @@ const ProjectCard = ({ project, onDelete, onClick }) => (
         </small>
       )}
     </div>
-    {project.userRole === 'owner' && (
-      <button
-        style={styles.deleteBtn}
-        onClick={e => {
-          e.stopPropagation();
-          onDelete(project._id);
-        }}
-      >
-        🗑️ Delete
-      </button>
-    )}
   </div>
 );
 

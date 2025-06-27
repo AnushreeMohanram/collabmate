@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react'; // Import useRef
 import API from '../api/axios';
 import { useNavigate } from 'react-router-dom';
+import Swal from 'sweetalert2';
 
 const skillLevels = ['beginner', 'intermediate', 'advanced', 'expert'];
 
@@ -79,12 +80,12 @@ const Profile = () => {
 
   const handleAddSkill = () => {
     if (newSkillName.trim() === '') {
-      alert('Skill name cannot be empty.');
+      Swal.fire({ icon: 'error', title: 'Error', text: 'Skill name cannot be empty.' });
       return;
     }
     // Check for duplicate skill names (case-insensitive)
     if (editedSkills.some(s => s.name.toLowerCase() === newSkillName.trim().toLowerCase())) {
-        alert('This skill already exists.');
+        Swal.fire({ icon: 'error', title: 'Error', text: 'This skill already exists.' });
         return;
     }
     const newSkill = { name: newSkillName.trim(), level: newSkillLevel, verified: false };
@@ -123,7 +124,7 @@ const Profile = () => {
       localStorage.setItem('user', JSON.stringify(updatedUserInStorage));
 
       setIsEditing(false); // Exit editing mode
-      alert('Profile updated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success', text: 'Profile updated successfully!' });
     } catch (err) {
       console.error('Error updating user profile:', err);
       const errorMessage = err.response?.data?.message || 'Failed to update profile. Please try again.';
@@ -188,7 +189,7 @@ const Profile = () => {
 
       setSelectedAvatarFile(null); // Clear selected file
       if(avatarFileInputRef.current) avatarFileInputRef.current.value = ''; // Clear file input
-      alert('Avatar updated successfully!');
+      Swal.fire({ icon: 'success', title: 'Success', text: 'Avatar updated successfully!' });
     } catch (err) {
       console.error('Error uploading avatar:', err);
       const errorMessage = err.response?.data?.message || 'Failed to upload avatar. Please try again.';
@@ -366,7 +367,7 @@ const Profile = () => {
 
 
           <div style={styles.section}>
-            <h3>Edit Skills:</h3>
+            <h3>Skills:</h3>
             <div style={styles.skillInputGroup}>
               <input
                 type="text"
@@ -415,7 +416,7 @@ const Profile = () => {
           </div>
 
           <div style={styles.section}>
-            <h3>Edit Interests:</h3>
+            <h3>Interests:</h3>
             {editedInterests.map((interest, index) => (
               <div key={index} style={styles.interestInputGroup}>
                 <input
@@ -434,7 +435,18 @@ const Profile = () => {
             <button type="submit" style={styles.saveButton} disabled={loading}>
               {loading ? 'Saving...' : 'Save Changes'}
             </button>
-            <button type="button" onClick={() => {
+            <button type="button" onClick={async () => {
+              const result = await Swal.fire({
+                title: 'Discard changes?',
+                text: 'Are you sure you want to discard your changes?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#4f46e5',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, discard',
+                cancelButtonText: 'No, keep editing'
+              });
+              if (!result.isConfirmed) return;
               setIsEditing(false);
               setSelectedAvatarFile(null); // Clear selected file when canceling
               setAvatarUploadError(null); // Clear avatar upload errors
