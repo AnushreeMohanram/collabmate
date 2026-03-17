@@ -4,33 +4,29 @@ const Project = require('../models/Project');
 const authMiddleware = require('../middleware/authMiddleware');
 const Collaboration = require('../models/Collaboration');
 
-// 🟩 Get all projects for logged-in user (including collaborations)
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     console.log('Fetching projects for user:', req.user._id);
-    
-    // Find projects where user is owner
     const ownedProjects = await Project.find({ owner: req.user._id });
     const ownedProjectsWithRole = ownedProjects.map(project => ({
       ...project.toObject(),
       userRole: 'owner'
     }));
-    
-    // Find projects where user is collaborator
     const collaborations = await Collaboration.find({
       receiver: req.user._id,
       status: 'accepted'
     }).populate('project');
     
     const collaboratedProjects = collaborations
-      .filter(collab => collab.project) // Only keep collaborations with a valid project
+      .filter(collab => collab.project) 
       .map(collab => ({
         ...collab.project.toObject(),
         userRole: collab.role,
         collaborationId: collab._id
       }));
     
-    // Combine both lists
+    
     const allProjects = [...ownedProjectsWithRole, ...collaboratedProjects];
     
     console.log(`Found ${ownedProjects.length} owned projects and ${collaboratedProjects.length} collaborated projects`);
@@ -42,7 +38,7 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// Get project details (with collaborator check)
+
 router.get('/:id', authMiddleware, async (req, res) => {
   try {
     console.log('Fetching project details:', req.params.id);
@@ -52,7 +48,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Project not found' });
     }
 
-    // Check if user is owner or collaborator
+    
     const isOwner = project.owner.toString() === req.user._id.toString();
     const collaboration = await Collaboration.findOne({
       project: req.params.id,
@@ -64,7 +60,6 @@ router.get('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to access this project' });
     }
 
-    // Get collaborator details
     const collaborators = await Collaboration.find({
       project: req.params.id,
       status: 'accepted'
@@ -109,7 +104,7 @@ router.post('/', authMiddleware, async (req, res) => {
   }
 });
 
-// 🟥 Delete project
+
 router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     console.log('Attempting to delete project:', req.params.id);
@@ -128,7 +123,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Not authorized to delete this project' });
     }
 
-    // Delete the project
+    
     await Project.findByIdAndDelete(req.params.id);
     console.log('Project deleted successfully');
 
@@ -146,7 +141,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   }
 });
 
-// PATCH endpoint to update project status
+
 router.patch('/:id', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
@@ -157,7 +152,7 @@ router.patch('/:id', authMiddleware, async (req, res) => {
     if (!project) {
       return res.status(404).json({ error: 'Project not found' });
     }
-    // Only allow owner or accepted collaborator to update status
+    
     const isOwner = project.owner.toString() === req.user._id.toString();
     const collaboration = await Collaboration.findOne({
       project: req.params.id,

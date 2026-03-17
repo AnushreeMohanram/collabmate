@@ -3,20 +3,18 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
-const authMiddleware = require('../middleware/authMiddleware'); // Assuming you want attachments to be private
-
-// Configure Multer storage
+const authMiddleware = require('../middleware/authMiddleware'); 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/'); // Files will be saved in the 'uploads/' directory
+    cb(null, 'uploads/'); 
   },
   filename: function (req, file, cb) {
-    // Use a unique filename to prevent clashes, e.g., timestamp-originalfilename
+    
     cb(null, Date.now() + '-' + file.originalname);
   }
 });
 
-// File filter to allow only certain file types (optional, but recommended)
+
 const fileFilter = (req, file, cb) => {
   const allowedTypes = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|txt|zip|rar|mp4|mov/;
   const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -32,13 +30,12 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 1024 * 1024 * 10 // 10MB file size limit
+    fileSize: 1024 * 1024 * 10 
   },
   fileFilter: fileFilter
 });
 
-// Route to handle single file upload
-// Example: POST /api/attachments/upload/single
+
 router.post('/upload/single', authMiddleware, upload.single('file'), (req, res) => {
   if (!req.file) {
     return res.status(400).json({ message: 'No file uploaded.' });
@@ -46,7 +43,7 @@ router.post('/upload/single', authMiddleware, upload.single('file'), (req, res) 
   console.log('File uploaded:', req.file);
   res.status(200).json({
     message: 'File uploaded successfully!',
-    filePath: `/uploads/${req.file.filename}`, // Path to access the file from frontend
+    filePath: `/uploads/${req.file.filename}`, 
     fileName: req.file.filename,
     originalName: req.file.originalname,
     mimetype: req.file.mimetype,
@@ -54,6 +51,6 @@ router.post('/upload/single', authMiddleware, upload.single('file'), (req, res) 
   });
 });
 
-// You can also add a route for multiple files if needed, e.g., upload.array('files', 5)
+
 
 module.exports = router;

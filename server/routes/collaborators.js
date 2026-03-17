@@ -1,23 +1,22 @@
-// routes/collaborators.js
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Get all users (except current user)
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     console.log('GET /users - Fetching users for collaborator search');
     console.log('Current user ID:', req.user._id);
     
-    // Find all users except the current user
+    
     const users = await User.find({ _id: { $ne: req.user._id } })
       .select('name email skills')
       .lean();
     
     console.log(`Found ${users.length} potential collaborators`);
     
-    // Ensure skills is always an array
+    
     const formattedUsers = users.map(user => ({
       ...user,
       skills: user.skills || []

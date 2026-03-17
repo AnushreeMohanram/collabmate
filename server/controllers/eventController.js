@@ -1,6 +1,6 @@
 const Event = require('../models/Event');
 
-// Create a new event
+
 exports.createEvent = async (req, res) => {
   try {
     const event = new Event({
@@ -14,7 +14,7 @@ exports.createEvent = async (req, res) => {
   }
 };
 
-// Get events for a project (or all events if no project specified)
+
 exports.getEvents = async (req, res) => {
   try {
     const query = req.query.project ? { project: req.query.project } : {};
@@ -25,7 +25,7 @@ exports.getEvents = async (req, res) => {
   }
 };
 
-// Update an event
+
 exports.updateEvent = async (req, res) => {
   try {
     const event = await Event.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -36,7 +36,7 @@ exports.updateEvent = async (req, res) => {
   }
 };
 
-// Delete an event
+
 exports.deleteEvent = async (req, res) => {
   try {
     const event = await Event.findByIdAndDelete(req.params.id);

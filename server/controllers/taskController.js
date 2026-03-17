@@ -1,11 +1,11 @@
 const Task = require('../models/Task');
 
-// Create a new task
+
 exports.createTask = async (req, res) => {
   try {
     const task = new Task({
       ...req.body,
-      assignedTo: req.user._id // Default to current user if not provided
+      assignedTo: req.user._id 
     });
     await task.save();
     res.status(201).json(task);
@@ -14,7 +14,7 @@ exports.createTask = async (req, res) => {
   }
 };
 
-// Get tasks for a project or user
+
 exports.getTasks = async (req, res) => {
   try {
     let query = {};
@@ -27,7 +27,7 @@ exports.getTasks = async (req, res) => {
   }
 };
 
-// Update a task
+
 exports.updateTask = async (req, res) => {
   try {
     const task = await Task.findByIdAndUpdate(req.params.id, req.body, { new: true });
@@ -38,7 +38,7 @@ exports.updateTask = async (req, res) => {
   }
 };
 
-// Delete a task
+
 exports.deleteTask = async (req, res) => {
   try {
     const task = await Task.findByIdAndDelete(req.params.id);

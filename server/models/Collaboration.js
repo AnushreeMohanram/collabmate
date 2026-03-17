@@ -59,35 +59,34 @@ const collaborationSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Indexes for better query performance
+
 collaborationSchema.index({ project: 1, receiver: 1 }, { unique: true });
 collaborationSchema.index({ sender: 1, status: 1 });
 collaborationSchema.index({ receiver: 1, status: 1 });
 
-// Add pre-save middleware to validate users and project exist
+
 collaborationSchema.pre('save', async function(next) {
   try {
     const [User, Project] = [mongoose.model('User'), mongoose.model('Project')];
     
-    // Check if sender exists
+    
     const sender = await User.findById(this.sender);
     if (!sender) {
       throw new Error('Sender not found');
     }
 
-    // Check if receiver exists
+    
     const receiver = await User.findById(this.receiver);
     if (!receiver) {
       throw new Error('Receiver not found');
     }
 
-    // Check if project exists
     const project = await Project.findById(this.project);
     if (!project) {
       throw new Error('Project not found');
     }
 
-    // Check if sender is project owner
+    
     if (project.owner.toString() !== this.sender.toString()) {
       throw new Error('Only project owner can send collaboration requests');
     }

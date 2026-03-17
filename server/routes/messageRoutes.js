@@ -1,15 +1,14 @@
-// server/routes/messageRoutes.js
 const express = require('express');
 const router = express.Router();
 const Message = require('../models/Message');
 const User = require('../models/User');
-const Conversation = require('../models/Conversation'); // <--- NEW: Import Conversation model
+const Conversation = require('../models/Conversation'); 
 const authMiddleware = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
 
-// Configure multer for file uploads (keep as is)
+
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
     const uploadDir = 'uploads/messages';
@@ -29,7 +28,7 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
   limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB limit
+    fileSize: 5 * 1024 * 1024 
   },
   fileFilter: (req, file, cb) => {
     const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
@@ -41,7 +40,7 @@ const upload = multer({
   }
 });
 
-// GET all messages for a user with pagination and filters (Keep as is)
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -109,13 +108,13 @@ router.get('/', authMiddleware, async (req, res) => {
   }
 });
 
-// POST a new message (UPDATED TO HANDLE BOTH DIRECT AND CONVERSATION MESSAGES)
+
 router.post('/', authMiddleware, async (req, res) => {
   try {
-    // Destructure all possible fields that might be sent
+    
     const { recipientId, subject, content, projectId, threadId, type, conversationId } = req.body;
 
-    // Debug logs
+    
     console.log('req.body:', req.body);
 
     let messageData = {
@@ -123,15 +122,12 @@ router.post('/', authMiddleware, async (req, res) => {
       content: content,
       project: projectId,
       thread: threadId,
-      type: type || 'message', // Default type
+      type: type || 'message', 
       status: 'active'
     };
     console.log('messageData:', messageData);
-
-    // --- CRITICAL LOGIC FOR HANDLING MESSAGE TYPES ---
     if (conversationId) {
-      // This is a message within an existing conversation
-      if (!content || !conversationId) { // Content is always required for conversation messages
+      if (!content || !conversationId) { 
         return res.status(400).json({ error: 'Message content and conversation ID are required for conversation messages.' });
       }
 
@@ -143,23 +139,21 @@ router.post('/', authMiddleware, async (req, res) => {
         return res.status(403).json({ error: 'You are not a participant of this conversation.' });
       }
 
-      messageData.conversation = conversationId; // Link message to conversation
-      messageData.recipient = undefined; // No direct recipient for conversation messages
-      messageData.subject = undefined; // No subject for individual messages within a conversation
+      messageData.conversation = conversationId; 
+      messageData.recipient = undefined; 
+      messageData.subject = undefined; 
 
-      // Create the message
+      
       const message = new Message(messageData);
       await message.save();
-
-      // Update the conversation's messages array and last activity
       conversation.messages.push(message._id);
       conversation.updatedAt = Date.now();
-      conversation.aiSummaryNeedsUpdate = true; // Mark summary as stale when new messages are added
-      conversation.aiSummary = null; // Clear existing summary
-      conversation.aiSummaryGeneratedAt = null; // Clear timestamp
+      conversation.aiSummaryNeedsUpdate = true; 
+      conversation.aiSummary = null; 
+      conversation.aiSummaryGeneratedAt = null; 
       await conversation.save();
 
-      // Populate sender for response
+      
       const populatedMessage = await Message.findById(message._id)
         .populate('sender', 'name email avatar'); // Populate name, email, avatar for frontend
 
@@ -168,7 +162,7 @@ router.post('/', authMiddleware, async (req, res) => {
       return res.status(201).json(populatedMessage);
 
     } else {
-      // This is a traditional direct message (original logic)
+      
       if (!recipientId || !subject || !content) {
         return res.status(400).json({ error: 'Missing required fields: recipientId, subject, and content are required for direct messages.' });
       }
@@ -198,15 +192,15 @@ router.post('/', authMiddleware, async (req, res) => {
   } catch (err) {
     console.error('Error sending message:', err);
     if (err.name === 'ValidationError') {
-      // Mongoose validation error
+      
       return res.status(400).json({ error: err.message });
     }
-    // Handle other general errors
+    
     res.status(500).json({ error: 'Failed to send message' });
   }
 });
 
-// Get thread messages (keep as is)
+
 router.get('/thread/:threadId', authMiddleware, async (req, res) => {
   try {
     const messages = await Message.find({
@@ -229,7 +223,7 @@ router.get('/thread/:threadId', authMiddleware, async (req, res) => {
   }
 });
 
-// Add reaction to message (keep as is)
+
 router.post('/:messageId/reactions', authMiddleware, async (req, res) => {
   try {
     const { emoji } = req.body;
@@ -247,7 +241,7 @@ router.post('/:messageId/reactions', authMiddleware, async (req, res) => {
   }
 });
 
-// Remove reaction from message (keep as is)
+
 router.delete('/:messageId/reactions', authMiddleware, async (req, res) => {
   try {
     const message = await Message.findById(req.params.messageId);
@@ -264,7 +258,6 @@ router.delete('/:messageId/reactions', authMiddleware, async (req, res) => {
   }
 });
 
-// Mark message as read (keep as is)
 router.patch('/:messageId/read', authMiddleware, async (req, res) => {
   try {
     const message = await Message.findById(req.params.messageId);
@@ -281,7 +274,7 @@ router.patch('/:messageId/read', authMiddleware, async (req, res) => {
   }
 });
 
-// Archive message (keep as is)
+
 router.patch('/:messageId/archive', authMiddleware, async (req, res) => {
   try {
     const message = await Message.findOneAndUpdate(
@@ -307,7 +300,7 @@ router.patch('/:messageId/archive', authMiddleware, async (req, res) => {
   }
 });
 
-// Delete message (soft delete - keep as is)
+
 router.delete('/:messageId', authMiddleware, async (req, res) => {
   try {
     const message = await Message.findOne({
@@ -322,7 +315,7 @@ router.delete('/:messageId', authMiddleware, async (req, res) => {
       return res.status(404).json({ error: 'Message not found' });
     }
 
-    // Soft delete
+    
     message.status = 'deleted';
     await message.save();
 
@@ -333,7 +326,7 @@ router.delete('/:messageId', authMiddleware, async (req, res) => {
   }
 });
 
-// Get unread message count (keep as is)
+
 router.get('/unread/count', authMiddleware, async (req, res) => {
   try {
     const count = await Message.countDocuments({
@@ -349,7 +342,7 @@ router.get('/unread/count', authMiddleware, async (req, res) => {
 });
 
 
-// Admin message status update routes (keep as is)
+
 const adminMiddleware = require('../middleware/adminMiddleware');
 
 router.put('/:messageId/:action', [authMiddleware, adminMiddleware], async (req, res) => {

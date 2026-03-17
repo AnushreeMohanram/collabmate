@@ -4,14 +4,14 @@ const Collaboration = require('../models/Collaboration');
 const Project = require('../models/Project');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Send collaboration request
+
 router.post('/request', authMiddleware, async (req, res) => {
   try {
     console.log('Creating collaboration request:', req.body);
     
     const { projectId, receiverId, role, message } = req.body;
 
-    // Validate input
+    
     if (!projectId || !receiverId) {
       return res.status(400).json({ error: 'Project ID and receiver ID are required' });
     }
@@ -26,7 +26,6 @@ router.post('/request', authMiddleware, async (req, res) => {
       return res.status(403).json({ error: 'Only project owner can send collaboration requests' });
     }
 
-    // Check if collaboration already exists
     const existingCollab = await Collaboration.findOne({
       project: projectId,
       receiver: receiverId
@@ -46,7 +45,7 @@ router.post('/request', authMiddleware, async (req, res) => {
       }
     }
 
-    // Create collaboration request
+    
     const collaboration = new Collaboration({
       project: projectId,
       sender: req.user._id,
@@ -68,7 +67,6 @@ router.post('/request', authMiddleware, async (req, res) => {
   }
 });
 
-// Get collaboration requests (pending)
 router.get('/requests', authMiddleware, async (req, res) => {
   try {
     console.log('Fetching collaboration requests for user:', req.user._id);
@@ -81,7 +79,7 @@ router.get('/requests', authMiddleware, async (req, res) => {
     .populate('project', 'name description')
     .sort({ createdAt: -1 });
 
-    // Filter out any requests where sender or project is null
+ 
     const validRequests = requests.filter(req => req.sender && req.project);
 
     console.log('Found collaboration requests:', validRequests);

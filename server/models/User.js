@@ -1,8 +1,7 @@
-// models/User.js
 const mongoose = require("mongoose");
 const bcrypt = require('bcryptjs');
 
-// Define the schema
+
 const userSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -22,7 +21,7 @@ const userSchema = new mongoose.Schema({
     minlength: 6,
   },
   
-  // ✅ NEW FIELD: Avatar URL
+  
   avatar: {
     type: String,
     default: 'https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png' // Default placeholder avatar

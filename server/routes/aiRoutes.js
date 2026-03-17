@@ -1,4 +1,3 @@
-// server/routes/aiRoutes.js (FINAL UPDATED VERSION)
 console.log('>>> aiRoutes.js loaded');
 const express = require('express');
 const router = express.Router();
@@ -6,7 +5,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const User = require('../models/User');
 
-// NEW: Import the AI Controller
+
 const aiController = require('../controllers/aiController');
 console.log('>>> aiController successfully required in aiRoutes.js');
 
@@ -17,16 +16,14 @@ if (!geminiApiKey) {
   console.error('ERROR: GEMINI_API_KEY is not set in environment variables.');
 }
 
-// NOTE: Ideally, the GoogleGenerativeAI initialization (genAI, model)
-// should also be in aiController.js if it's solely used by its functions.
-// For now, it's kept here for the /get-suggestions route.
+
 const genAI = new GoogleGenerativeAI(geminiApiKey);
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-// Middleware to protect routes (ensure user is logged in)
+
 router.use(authMiddleware);
 
-// Helper function to update AI usage stats (keep as is if used by get-suggestions)
+
 async function updateUserAIUsage(userId, toolName) {
   try {
     const user = await User.findById(userId);
@@ -53,14 +50,6 @@ async function updateUserAIUsage(userId, toolName) {
     console.error('Error updating user AI usage stats:', updateErr);
   }
 }
-
-/**
- * @route POST /api/ai/get-suggestions
- * @desc Get AI-powered suggestions based on user skills and interests
- * @access Private (Auth Required)
- * @body {string[]} skills - Array of user's skill objects ({ name: String, level: String })
- * @body {string[]} interests - Array of user's interests (strings)
- */
 router.post('/get-suggestions', async (req, res) => {
   const { skills, interests } = req.body;
   const userId = req.user._id;
@@ -140,13 +129,7 @@ Example format:
   }
 });
 
-/**
- * @route POST /api/ai/chat/summarize
- * @desc Generate a summary of a conversation using AI
- * @access Private (Auth Required)
- * @body {string} conversationId - The ID of the conversation to summarize
- */
-// NEW ROUTE ADDED HERE!
+
 router.post('/chat/summarize', aiController.summarizeConversation);
 console.log('>>> aiRoutes: /chat/summarize route defined'); // Log to confirm it's reached
 

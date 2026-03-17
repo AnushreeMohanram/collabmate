@@ -66,33 +66,23 @@ const createConversation = async (req, res) => {
     }
 
     try {
-        // Check if all provided participant IDs are valid users
+        
         const validParticipants = await User.find({ _id: { $in: allParticipantIds } });
         if (validParticipants.length !== allParticipantIds.length) {
             return res.status(400).json({ message: 'One or more participant IDs are invalid.' });
         }
 
-        // Optional: Check for existing conversation with the exact same participants
-        // This prevents creating duplicate 1-on-1 chats, but might not be desired for group chats
-        // if (allParticipantIds.length === 2) { // Only check for 1-on-1
-        //     const existingConversation = await Conversation.findOne({
-        //         participants: { $all: allParticipantIds, $size: 2 }
-        //     });
-        //     if (existingConversation) {
-        //         return res.status(200).json(existingConversation); // Return existing conversation
-        //     }
-        // }
 
         const newConversation = new Conversation({
             participants: allParticipantIds,
-            subject: subject || 'New Conversation' // Default subject if none provided
+            subject: subject || 'New Conversation' 
         });
 
         const savedConversation = await newConversation.save();
 
-        // Populate participants for the response
+        
         const populatedConversation = await Conversation.findById(savedConversation._id)
-                                            .populate('participants', 'name email avatar'); // Populate participants
+                                            .populate('participants', 'name email avatar'); 
 
         res.status(201).json(populatedConversation);
     } catch (error) {
@@ -101,9 +91,7 @@ const createConversation = async (req, res) => {
     }
 };
 
-// @desc    Add participants to an existing conversation
-// @route   PUT /api/conversations/:id/participants
-// @access  Private
+
 const addParticipantsToConversation = async (req, res) => {
     const { newParticipantIds } = req.body;
     try {
@@ -113,12 +101,12 @@ const addParticipantsToConversation = async (req, res) => {
             return res.status(404).json({ message: 'Conversation not found' });
         }
 
-        // Ensure the requesting user is already a participant to modify it
+        
         if (!conversation.participants.includes(req.user._id)) {
             return res.status(403).json({ message: 'Not authorized to modify this conversation' });
         }
 
-        // Filter out participants already in the conversation
+        
         const filteredNewParticipants = newParticipantIds.filter(
             (id) => !conversation.participants.map(p => p.toString()).includes(id)
         );
@@ -127,7 +115,7 @@ const addParticipantsToConversation = async (req, res) => {
             return res.status(200).json({ message: 'No new participants to add.', conversation });
         }
 
-        // Validate new participant IDs
+        
         const validParticipants = await User.find({ _id: { $in: filteredNewParticipants } });
         if (validParticipants.length !== filteredNewParticipants.length) {
             return res.status(400).json({ message: 'One or more new participant IDs are invalid.' });
@@ -137,8 +125,7 @@ const addParticipantsToConversation = async (req, res) => {
         await conversation.save();
 
         const populatedConversation = await Conversation.findById(conversation._id)
-                                                .populate('participants', 'name email avatar'); // Populate participants
-
+                                                .populate('participants', 'name email avatar'); 
         res.json(populatedConversation);
     } catch (error) {
         console.error('Error adding participants:', error);
@@ -153,13 +140,12 @@ const deleteConversation = async (req, res) => {
         if (!conversation) {
             return res.status(404).json({ message: 'Conversation not found' });
         }
-        // Only allow participants to delete
+        
         if (!conversation.participants.includes(req.user._id)) {
             return res.status(403).json({ message: 'Not authorized to delete this conversation' });
         }
-        // Delete all messages in this conversation
+        
         await Message.deleteMany({ conversation: conversation._id });
-        // Delete the conversation itself
         await Conversation.findByIdAndDelete(conversation._id);
         res.json({ message: 'Conversation and its messages deleted successfully' });
     } catch (err) {
@@ -168,7 +154,7 @@ const deleteConversation = async (req, res) => {
     }
 };
 
-// IMPORTANT: Make sure all functions you want to be available are exported here
+
 module.exports = {
     getConversations,
     getConversationById,
