@@ -31,7 +31,7 @@ CollabMate is a modern web application that helps users collaborate on projects 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/collabmate.git
+git clone https://github.com/AnushreeMohanram/collabmate.git
 cd collabmate
 ```
 
